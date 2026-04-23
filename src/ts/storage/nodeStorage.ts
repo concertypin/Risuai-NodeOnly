@@ -20,6 +20,16 @@ export class ConflictError extends Error {
     }
 }
 
+// Custom error class for HTTP errors that preserves status code
+export class HttpError extends Error {
+    status: number
+    constructor(message: string, status: number) {
+        super(message)
+        this.name = 'HttpError'
+        this.status = status
+    }
+}
+
 export class NodeStorage{
     private static readonly BULK_WRITE_CLIENT_BATCH = 20
 
@@ -185,7 +195,7 @@ export class NodeStorage{
             throw new ConflictError(data.error, data.currentEtag)
         }
         if(da.status < 200 || da.status >= 300){
-            throw "setItem Error"
+            throw new HttpError(`setItem Error: HTTP ${da.status}`, da.status)
         }
         const data = await da.json()
         if(data.error){

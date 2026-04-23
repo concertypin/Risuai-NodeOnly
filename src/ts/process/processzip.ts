@@ -4,6 +4,8 @@ import { asBuffer, Semaphore, sleep } from "../util";
 import { alertStore } from "../alert";
 import { hasher } from "../parser/parser.svelte";
 import { hubURL } from "../characterCards";
+import { HttpError } from "../storage/nodeStorage";
+import { getDatabase } from "../storage/database.svelte";
 
 // File size and chunk size constants
 const MAX_ASSET_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
@@ -15,6 +17,56 @@ const MAX_CONCURRENT_ASSET_SAVES = 10;
 // HTTP status code ranges
 const HTTP_STATUS_OK_MIN = 200;
 const HTTP_STATUS_OK_MAX = 300;
+
+// Default retry configuration for asset saves
+const DEFAULT_ASSET_SAVE_MAX_RETRIES = 3;
+const DEFAULT_ASSET_SAVE_INITIAL_DELAY_MS = 1000;
+const DEFAULT_ASSET_SAVE_MAX_DELAY_MS = 10000;
+
+/**
+ * Checks if an error is transient and should be retried.
+ * Transient errors: network failures, 5xx server errors, 429 rate limits.
+ */
+export function isTransientError(error: unknown): boolean {
+    if (error instanceof HttpError) {
+        // Retry on server errors (5xx) and rate limits (429)
+        return error.status >= 500 || error.status === 429;
+    }
+    // Retry on network errors (TypeError from fetch)
+    if (error instanceof TypeError) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Retries an async operation with exponential backoff.
+ * Uses settings from database if available, otherwise defaults.
+ */
+export async function retryWithBackoff<T>(
+    operation: () => Promise<T>
+): Promise<T> {
+    const db = getDatabase()
+    const maxRetries = db.assetSaveRetries ?? DEFAULT_ASSET_SAVE_MAX_RETRIES
+    const initialDelayMs = db.assetSaveRetryDelay ?? DEFAULT_ASSET_SAVE_INITIAL_DELAY_MS
+    const maxDelayMs = DEFAULT_ASSET_SAVE_MAX_DELAY_MS
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error;
+            if (attempt < maxRetries && isTransientError(error)) {
+                const delay = Math.min(initialDelayMs * Math.pow(2, attempt), maxDelayMs);
+                await sleep(delay);
+            } else {
+                throw error;
+            }
+        }
+    }
+    throw lastError;
+}
 
 export async function processZip(dataArray: Uint8Array): Promise<string> {
     const unzipped = await new Promise<fflate.Unzipped>((resolve, reject) => {
@@ -396,7 +448,7 @@ export class CharXImporter{
             acquired = true
             const assetSaveId = this.skipSaving
                 ? `assets/${await hasher(asset.data)}.png`
-                : await saveAsset(asset.data)
+                : await retryWithBackoff(() => saveAsset(asset.data))
 
             this.assets[asset.id] = assetSaveId
         } catch (error) {
@@ -418,7 +470,7 @@ export class CharXImporter{
     async #finalize(){
         // Save hash signal for server sync if needed
         if(this.hashSignal){
-            await saveAsset(new TextEncoder().encode(this.hashSignal))
+            await retryWithBackoff(() => saveAsset(new TextEncoder().encode(this.hashSignal)))
         }
 
         this.isFinalized = true

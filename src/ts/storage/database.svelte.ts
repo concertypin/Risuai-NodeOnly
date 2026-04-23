@@ -950,6 +950,8 @@ export interface Database{
         FontColorQuote2 : string
     }
     requestRetrys:number
+    assetSaveRetries?:number        // Max retries for asset save operations (default: 3)
+    assetSaveRetryDelay?:number     // Initial retry delay in ms for asset saves (default: 1000)
     emotionPrompt2:string
     useSayNothing:boolean
     didFirstSetup: boolean
