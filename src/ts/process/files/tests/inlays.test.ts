@@ -32,9 +32,24 @@ vi.spyOn(document, 'createElement').mockImplementation((tag: string, options?: a
     return el
 })
 
-const { nodeStorageMap, inlayMetaMap } = vi.hoisted(() => ({
+const { nodeStorageMap, inlayMetaMap, getDatabaseMock, mockSelIdState, mockDBState } = vi.hoisted(() => ({
     nodeStorageMap: new Map<string, Uint8Array>(),
     inlayMetaMap: new Map<string, any>(),
+    getDatabaseMock: vi.fn(() => ({
+        characters: [],
+        enabledModules: [],
+        assetSaveRetries: 3,
+        assetSaveRetryDelay: 10,
+    })),
+    mockSelIdState: { selId: 0 },
+    mockDBState: {
+        db: {
+            characters: [],
+            enabledModules: [],
+            assetSaveRetries: 3,
+            assetSaveRetryDelay: 10,
+        }
+    },
 }))
 
 vi.mock('src/ts/storage/nodeStorage', () => {
@@ -88,15 +103,34 @@ vi.mock('uuid', () => ({
     v4: vi.fn(() => 'test-uuid-1234'),
 }))
 
-const { getDatabaseMock } = vi.hoisted(() => ({
-    getDatabaseMock: vi.fn(),
-}))
-
 vi.mock(import('src/ts/storage/database.svelte'), () => ({
     getDatabase: getDatabaseMock,
     getCurrentCharacter: vi.fn(() => null),
     getCurrentChat: vi.fn(() => null),
+    DBState: mockDBState,
 }))
+
+vi.mock(import('src/ts/stores.svelte'), () => ({
+    selIdState: mockSelIdState,
+    DBState: mockDBState,
+}))
+
+vi.mock(import('src/ts/parser/parser.svelte'), async (importOriginal) => {
+    const actual = await importOriginal()
+    return {
+        ...actual,
+        hasher: vi.fn(async () => 'mock-hash'),
+    }
+})
+
+vi.mock(import('src/ts/process/modules'), async (importOriginal) => {
+    const actual = await importOriginal()
+    return {
+        ...actual,
+        moduleUpdate: vi.fn(),
+        getModules: vi.fn(() => []),
+    }
+})
 
 vi.mock(
     import('src/ts/util'),
@@ -105,6 +139,27 @@ vi.mock(
             asBuffer: (arr: Uint8Array) => arr,
         }) as typeof import('src/ts/util'),
 )
+
+// Mock FileReader for blobToBase64 - happy-dom FileReader doesn't fire onloadend
+const { mockFileReader } = vi.hoisted(() => ({
+    mockFileReader: {
+        result: 'data:image/png;base64,ZGF0YQ==',
+        readAsDataURL: vi.fn(),
+        onloadend: null,
+        onerror: null,
+    },
+}))
+
+vi.stubGlobal('FileReader', class MockFileReader {
+    result = mockFileReader.result
+    readAsDataURL = vi.fn(() => {
+        setTimeout(() => {
+            if (this.onloadend) this.onloadend()
+        }, 0)
+    })
+    onloadend = null
+    onerror = null
+})
 
 //#endregion
 
@@ -132,7 +187,12 @@ beforeEach(() => {
     vi.clearAllMocks()
     nodeStorageMap.clear()
     inlayMetaMap.clear()
-    getDatabaseMock.mockReturnValue({ characters: [] })
+    getDatabaseMock.mockReturnValue({
+        characters: [],
+        enabledModules: [],
+        assetSaveRetries: 3,
+        assetSaveRetryDelay: 10,
+    })
     __resetInlayStorageForTest()
 })
 
@@ -516,7 +576,13 @@ describe('writeInlayImage', () => {
     })
 
     test('stores image as lossless PNG when inlayImageLossless is true', async () => {
-        getDatabaseMock.mockReturnValue({ characters: [], inlayImageLossless: true })
+        getDatabaseMock.mockReturnValue({
+        characters: [],
+        enabledModules: [],
+        assetSaveRetries: 3,
+        assetSaveRetryDelay: 10,
+        inlayImageLossless: true,
+    })
         const imgObj = makeImage(200, 100)
 
         const result = await writeInlayImage(imgObj, {
