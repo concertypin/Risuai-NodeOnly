@@ -207,7 +207,7 @@ export class NodeStorage{
                         message = text
                     }
                 } catch {
-                    // noop
+                    // Ignore body parse errors and keep status-based fallback message.
                 }
             }
             throw new HttpError(da.status, message)

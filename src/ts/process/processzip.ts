@@ -20,6 +20,14 @@ const HTTP_STATUS_OK_MAX = 300;
 
 const TRANSIENT_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
+function getErrorStatus(error: unknown): number | null {
+    if (!error || typeof error !== 'object' || !('status' in error)) {
+        return null
+    }
+    const status = (error as { status?: unknown }).status
+    return typeof status === 'number' ? status : null
+}
+
 export function isTransientError(error: unknown): boolean {
     if (error instanceof TypeError) {
         return true
@@ -27,8 +35,9 @@ export function isTransientError(error: unknown): boolean {
     if (error instanceof Error && error.name === 'AbortError') {
         return true
     }
-    if (error && typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number') {
-        return TRANSIENT_HTTP_STATUSES.has((error as { status: number }).status)
+    const status = getErrorStatus(error)
+    if (status !== null) {
+        return TRANSIENT_HTTP_STATUSES.has(status)
     }
     if (typeof error === 'string') {
         const lower = error.toLowerCase()
