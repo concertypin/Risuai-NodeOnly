@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-vi.mock(import('../../globalApi.svelte'), () => ({
+vi.mock('../../globalApi.svelte', () => ({
     AppendableBuffer: class {
         buffer = new Uint8Array(0)
         append() { }
@@ -8,7 +8,7 @@ vi.mock(import('../../globalApi.svelte'), () => ({
     saveAsset: vi.fn(),
 }))
 
-vi.mock(import('../../util'), () => ({
+vi.mock('../../util', () => ({
     asBuffer: (arr: Uint8Array) => arr,
     Semaphore: class {
         constructor(_size: number) { }
@@ -18,18 +18,18 @@ vi.mock(import('../../util'), () => ({
     sleep: vi.fn(async () => { }),
 }))
 
-vi.mock(import('../../alert'), () => ({
+vi.mock('../../alert', () => ({
     alertStore: {
         set: vi.fn(),
     },
 }))
 
-vi.mock(import('../../parser/parser.svelte'), () => ({
+vi.mock('../../parser/parser.svelte', () => ({
     hasher: vi.fn(async () => 'hash'),
 }))
 
-vi.mock(import('../../characterCards'), () => ({
-    hubURL: 'https://example.com',
+vi.mock('../../characterCards', () => ({
+    hubURL: '/hub-proxy',
 }))
 
 import { retryWithBackoff } from '../processzip'
