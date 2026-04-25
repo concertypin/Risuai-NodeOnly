@@ -20,6 +20,15 @@ export class ConflictError extends Error {
     }
 }
 
+export class HttpError extends Error {
+    status: number
+    constructor(status: number, message: string) {
+        super(message)
+        this.name = 'HttpError'
+        this.status = status
+    }
+}
+
 export class NodeStorage{
     private static readonly BULK_WRITE_CLIENT_BATCH = 20
 
@@ -185,7 +194,23 @@ export class NodeStorage{
             throw new ConflictError(data.error, data.currentEtag)
         }
         if(da.status < 200 || da.status >= 300){
-            throw "setItem Error"
+            let message = `setItem Error (${da.status})`
+            try {
+                const data = await da.clone().json()
+                if (data?.error) {
+                    message = data.error
+                }
+            } catch {
+                try {
+                    const text = await da.text()
+                    if (text) {
+                        message = text
+                    }
+                } catch {
+                    // noop
+                }
+            }
+            throw new HttpError(da.status, message)
         }
         const data = await da.json()
         if(data.error){
