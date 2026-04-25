@@ -32,11 +32,11 @@ export function isTransientError(error: unknown): boolean {
     }
     if (typeof error === 'string') {
         const lower = error.toLowerCase()
-        return lower.includes('timeout') || lower.includes('network') || lower.includes('temporar')
+        return lower.includes('timeout') || lower.includes('network') || lower.includes('temporary')
     }
     if (error instanceof Error) {
         const lower = error.message.toLowerCase()
-        return lower.includes('timeout') || lower.includes('network') || lower.includes('failed to fetch') || lower.includes('temporar')
+        return lower.includes('timeout') || lower.includes('network') || lower.includes('failed to fetch') || lower.includes('temporary')
     }
     return false
 }
@@ -53,12 +53,10 @@ export async function retryWithBackoff<T>(
     const baseDelayMs = Math.max(0, options?.baseDelayMs ?? ASSET_SAVE_BASE_RETRY_DELAY_MS)
     const sleepFn = options?.sleepFn ?? sleep
 
-    let lastError: unknown
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    for (let attempt = 1; ; attempt += 1) {
         try {
             return await operation()
         } catch (error) {
-            lastError = error
             if (attempt >= maxAttempts || !isTransientError(error)) {
                 throw error
             }
@@ -66,8 +64,6 @@ export async function retryWithBackoff<T>(
             await sleepFn(delayMs)
         }
     }
-
-    throw lastError ?? new Error('Retry failed')
 }
 
 export async function processZip(dataArray: Uint8Array): Promise<string> {
