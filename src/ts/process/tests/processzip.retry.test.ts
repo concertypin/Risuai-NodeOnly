@@ -87,4 +87,21 @@ describe('retryWithBackoff', () => {
         expect(sleepFn).toHaveBeenNthCalledWith(1, 10)
         expect(sleepFn).toHaveBeenNthCalledWith(2, 20)
     })
+
+    test('fails fast for non-transient errors', async () => {
+        const error = new Error('bad request')
+        const operation = vi.fn().mockRejectedValue(error)
+        const sleepFn = vi.fn(async () => { })
+
+        await expect(
+            retryWithBackoff(operation, {
+                maxAttempts: 3,
+                baseDelayMs: 10,
+                sleepFn,
+            })
+        ).rejects.toThrow('bad request')
+
+        expect(operation).toHaveBeenCalledTimes(1)
+        expect(sleepFn).not.toHaveBeenCalled()
+    })
 })

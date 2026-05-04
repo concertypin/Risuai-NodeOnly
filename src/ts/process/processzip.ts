@@ -480,7 +480,17 @@ export class CharXImporter{
     async #finalize(){
         // Save hash signal for server sync if needed
         if(this.hashSignal){
-            await saveAsset(new TextEncoder().encode(this.hashSignal))
+            try {
+                await retryWithBackoff(
+                    () => saveAsset(new TextEncoder().encode(this.hashSignal)),
+                    {
+                        maxAttempts: ASSET_SAVE_MAX_ATTEMPTS,
+                        baseDelayMs: ASSET_SAVE_BASE_RETRY_DELAY_MS
+                    }
+                )
+            } catch (error) {
+                this.errors.push(error instanceof Error ? error : new Error(String(error)))
+            }
         }
 
         this.isFinalized = true
