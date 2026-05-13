@@ -104,4 +104,23 @@ describe('retryWithBackoff', () => {
         expect(operation).toHaveBeenCalledTimes(1)
         expect(sleepFn).not.toHaveBeenCalled()
     })
+
+    test('retries on Cloudflare transient status code', async () => {
+        const operation = vi
+            .fn()
+            .mockRejectedValueOnce({ name: 'HttpError', status: 522, message: 'Connection timed out' })
+            .mockResolvedValueOnce('ok-after-cf-retry')
+        const sleepFn = vi.fn(async () => { })
+
+        const result = await retryWithBackoff(operation, {
+            maxAttempts: 3,
+            baseDelayMs: 10,
+            sleepFn,
+        })
+
+        expect(result).toBe('ok-after-cf-retry')
+        expect(operation).toHaveBeenCalledTimes(2)
+        expect(sleepFn).toHaveBeenCalledTimes(1)
+        expect(sleepFn).toHaveBeenNthCalledWith(1, 10)
+    })
 })

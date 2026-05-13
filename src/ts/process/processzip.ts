@@ -18,7 +18,7 @@ const ASSET_SAVE_BASE_RETRY_DELAY_MS = 250;
 const HTTP_STATUS_OK_MIN = 200;
 const HTTP_STATUS_OK_MAX = 300;
 
-const TRANSIENT_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const TRANSIENT_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 
 function getErrorStatus(error: unknown): number | null {
     if (!error || typeof error !== 'object' || !('status' in error)) {
@@ -319,7 +319,7 @@ export class CharXImporter{
         this.unzip.push(data, final)
 
         if(final){
-            await this.#finalize()
+            await this.finalize()
         }
     }
 
@@ -477,7 +477,7 @@ export class CharXImporter{
      * Finalizes processing when all ZIP data has been pushed.
      * Saves hash signal if needed and marks the queue as complete.
      */
-    async #finalize(){
+    private async finalize(){
         // Save hash signal for server sync if needed
         if(this.hashSignal){
             try {
