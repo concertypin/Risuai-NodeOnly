@@ -12,7 +12,9 @@
 
     QuickSettings,
 
-    additionalHamburgerMenu
+    additionalHamburgerMenu,
+
+    leftBarCollapsed
 
 
   } from "../../ts/stores.svelte";
@@ -28,9 +30,10 @@
     FolderIcon,
     FolderOpenIcon,
     HomeIcon,
-    ImageIcon,
     WrenchIcon,
     User2Icon,
+    ChevronsLeft,
+    ArrowRight,
   } from "@lucide/svelte";
     import {
   addCharacter,
@@ -560,6 +563,7 @@
 {:else}
 <div
   class="h-full w-20 min-w-20 flex-col items-center bg-bgcolor text-textcolor shadow-lg relative rs-sidebar"
+  class:max-xs:hidden={$leftBarCollapsed}
   class:editMode
   class:risu-sub-sidebar={$sideBarClosing}
   class:risu-sub-sidebar-close={$sideBarClosing}
@@ -568,12 +572,22 @@
 >
   {#if !DBState.db.hamburgerButtonBottom}
   <button
-    class="flex h-8 min-h-8 w-14 min-w-14 cursor-pointer text-white mt-2 items-center justify-center rounded-md bg-textcolor2 transition-colors hover:bg-blue-500"
+    class="flex h-8 min-h-8 w-14 min-w-14 cursor-pointer text-white mt-2 items-center justify-center rounded-md bg-textcolor2 transition-colors hover:bg-primary"
+    class:max-xs:hidden={$leftBarCollapsed}
     onclick={() => {
       menuMode = 1 - menuMode;
     }}><ListIcon />
   </button>
-  <div class="mt-2 border-b border-b-selected w-full relative text-white ">
+  {#if !DBState.db.hideLeftBarCollapseButton}
+  <button
+    class="hidden max-xs:flex h-8 min-h-8 w-14 min-w-14 cursor-pointer mt-2 items-center justify-center rounded-md border border-borderc text-textcolor transition-colors hover:border-primary hover:text-primary"
+    aria-label="Collapse sidebar"
+    onclick={() => leftBarCollapsed.set(true)}
+  >
+    <ChevronsLeft size={20} />
+  </button>
+  {/if}
+  <div class="mt-2 border-b border-b-selected w-full relative text-white" class:max-xs:hidden={$leftBarCollapsed}>
     {#if menuMode === 1}
       <div class="absolute w-20 min-w-20 flex border-b-selected border-b bg-bgcolor flex-col items-center pt-2 rounded-b-md z-20 pb-2">
         <BarIcon
@@ -610,34 +624,29 @@
       <div class="mt-2"></div>
       <BarIcon
         onClick={() => {
-          reseter()
-          selectedCharID.set(-1)
-          PlaygroundStore.set(15)
-        }}
-      ><ImageIcon /></BarIcon>
-      {#each additionalHamburgerMenu as menu}
-        <div class="mt-2"></div>
-        <BarIcon
-          onClick={() => {
-            reseter();
-            menu.callback();
-          }}>
-            <PluginDefinedIcon ico={menu} />
-          </BarIcon
-        >
-      {/each}
-      <div class="mt-2"></div>
-      <BarIcon
-        onClick={() => {
           reseter();
           openGrid();
         }}><LayoutGridIcon /></BarIcon
       >
+      {#if additionalHamburgerMenu.length > 0}
+        <div class="mt-2 h-px w-10 bg-selected"></div>
+        {#each additionalHamburgerMenu as menu}
+          <div class="mt-2"></div>
+          <BarIcon
+            onClick={() => {
+              reseter();
+              menu.callback();
+            }}>
+              <PluginDefinedIcon ico={menu} />
+            </BarIcon
+          >
+        {/each}
+      {/if}
     </div>
     {/if}
   </div>
   {/if}
-  <div class="flex grow w-full flex-col items-center overflow-x-hidden overflow-y-auto pr-0" use:touchDragContainer>
+  <div class="flex grow w-full flex-col items-center overflow-x-hidden overflow-y-auto pr-0" class:max-xs:hidden={$leftBarCollapsed} use:touchDragContainer>
     <div class="h-4 min-h-4 w-14" role="listitem" data-spacer-index="0" ondragover={(e) => {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
@@ -903,7 +912,7 @@
     </div>
   </div>
   {#if DBState.db.hamburgerButtonBottom}
-  <div class="border-t border-t-selected w-full relative text-white ">
+  <div class="border-t border-t-selected w-full relative text-white" class:max-xs:hidden={$leftBarCollapsed}>
     {#if menuMode === 1}
       <div class="absolute bottom-full w-20 min-w-20 flex border-t-selected border-t bg-bgcolor flex-col items-center pt-2 rounded-t-md z-20 pb-2">
         <BarIcon
@@ -940,34 +949,39 @@
       <div class="mt-2"></div>
       <BarIcon
         onClick={() => {
-          reseter()
-          selectedCharID.set(-1)
-          PlaygroundStore.set(15)
-        }}
-      ><ImageIcon /></BarIcon>
-      {#each additionalHamburgerMenu as menu}
-        <div class="mt-2"></div>
-        <BarIcon
-          onClick={() => {
-            reseter();
-            menu.callback();
-          }}>
-            <PluginDefinedIcon ico={menu} />
-          </BarIcon
-        >
-      {/each}
-      <div class="mt-2"></div>
-      <BarIcon
-        onClick={() => {
           reseter();
           openGrid();
         }}><LayoutGridIcon /></BarIcon
       >
+      {#if additionalHamburgerMenu.length > 0}
+        <div class="mt-2 h-px w-10 bg-selected"></div>
+        {#each additionalHamburgerMenu as menu}
+          <div class="mt-2"></div>
+          <BarIcon
+            onClick={() => {
+              reseter();
+              menu.callback();
+            }}>
+              <PluginDefinedIcon ico={menu} />
+            </BarIcon
+          >
+        {/each}
+      {/if}
     </div>
     {/if}
   </div>
+  {#if !DBState.db.hideLeftBarCollapseButton}
   <button
-    class="flex h-8 min-h-8 w-14 min-w-14 cursor-pointer text-white mb-2 mt-2 items-center justify-center rounded-md bg-textcolor2 transition-colors hover:bg-blue-500"
+    class="hidden max-xs:flex h-8 min-h-8 w-14 min-w-14 cursor-pointer mt-2 items-center justify-center rounded-md border border-borderc text-textcolor transition-colors hover:border-primary hover:text-primary"
+    aria-label="Collapse sidebar"
+    onclick={() => leftBarCollapsed.set(true)}
+  >
+    <ChevronsLeft size={20} />
+  </button>
+  {/if}
+  <button
+    class="flex h-8 min-h-8 w-14 min-w-14 cursor-pointer text-white mb-2 mt-2 items-center justify-center rounded-md bg-textcolor2 transition-colors hover:bg-primary"
+    class:max-xs:hidden={$leftBarCollapsed}
     onclick={() => {
       menuMode = 1 - menuMode;
     }}><ListIcon />
@@ -976,7 +990,7 @@
 </div>
 {/if}
 <div
-  class="setting-area h-full flex-col overflow-y-auto overflow-x-hidden bg-darkbg py-6 text-textcolor max-h-full"
+  class="setting-area h-full max-xs:relative flex-col overflow-y-auto overflow-x-hidden bg-darkbg py-6 text-textcolor max-h-full"
   class:risu-sidebar={!$sideBarClosing}
   class:w-96={$sideBarSize === 0}
   class:w-110={$sideBarSize === 1}
@@ -1010,6 +1024,15 @@
   >
     <!-- <button class="border-none bg-transparent p-0 text-textcolor"><X /></button> -->
   </button>
+  {#if $leftBarCollapsed}
+    <button
+      class="hidden max-xs:flex absolute top-3 left-0 h-12 w-12 border-r border-b border-t border-borderc rounded-r-md bg-darkbg hover:border-neutral-200 transition-colors items-center justify-center text-textcolor opacity-50 hover:opacity-90 z-20"
+      aria-label="Expand sidebar"
+      onclick={() => leftBarCollapsed.set(false)}
+    >
+      <ArrowRight />
+    </button>
+  {/if}
   {#if sideBarMode === 0}
     {#if $selectedCharID < 0 || $settingsOpen}
       <div>
@@ -1050,7 +1073,10 @@
 </div>
 
 {#if $DynamicGUI}
-    <div role="button" tabindex="0" class="grow h-full min-w-12" class:hidden={hidden} onclick={() => {
+    <div role="button" tabindex="0" class="grow h-full min-w-12"
+      class:max-xs:!min-w-8={!$leftBarCollapsed}
+      class:max-xs:!min-w-6={$leftBarCollapsed}
+      class:hidden={hidden} onclick={() => {
       if($sideBarClosing){
         return
       }

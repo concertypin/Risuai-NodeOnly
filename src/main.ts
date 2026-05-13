@@ -1,5 +1,6 @@
 import "./ts/polyfill";
 import "core-js/actual"
+import "./ts/log-capture"
 import "./ts/storage/database.svelte"
 import App from "./App.svelte";
 import { loadData } from "./ts/bootstrap";

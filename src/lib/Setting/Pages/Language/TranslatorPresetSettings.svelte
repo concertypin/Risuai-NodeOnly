@@ -3,7 +3,9 @@
     import Help from "src/lib/Others/Help.svelte";
     import NumberInput from "src/lib/UI/GUI/NumberInput.svelte";
     import TextAreaInput from "src/lib/UI/GUI/TextAreaInput.svelte";
-    import { alertConfirm, alertError, alertInput, alertNormal } from "src/ts/alert";
+    import ShSelect from "src/lib/UI/GUI/ShSelect.svelte";
+    import OptionInput from "src/lib/UI/GUI/OptionInput.svelte";
+    import { alertConfirm, alertError, alertInput, notifySuccess, notifyError } from "src/ts/alert";
     import { downloadFile } from "src/ts/globalApi.svelte";
     import { DBState } from "src/ts/stores.svelte";
     import {
@@ -28,22 +30,23 @@
     }
 </script>
 
-<span class="text-textcolor mt-4">Preset</span>
-<select
-    class={"border border-darkborderc focus:border-borderc rounded-md shadow-xs text-textcolor bg-transparent focus:ring-borderc focus:ring-2 focus:outline-hidden transition-colors duration-200 text-md px-4 py-2 mb-1"}
-    bind:value={() => DBState.db.translatorPresetId, (value) => {
-        DBState.db.translatorPresetId = Number(value);
+<span class="text-textcolor mt-4">{language.presets} <Help key="translatorPreset" /></span>
+<ShSelect
+    className="mt-2 mb-1"
+    value={DBState.db.translatorPresetId}
+    onchange={(e) => {
+        DBState.db.translatorPresetId = Number((e.target as HTMLSelectElement).value);
         syncCurrentTranslatorPreset();
     }}
 >
     {#each DBState.db.translatorPresets as preset, i}
-        <option class="bg-darkbg appearance-none" value={i}>{preset.name}</option>
+        <OptionInput value={i}>{preset.name}</OptionInput>
     {/each}
-</select>
+</ShSelect>
 
 <div class="flex items-center mb-4">
     <button
-        class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer"
+        class="mr-2 text-textcolor2 hover:text-primary cursor-pointer"
         onclick={() => {
             const newPreset = createTranslatorPreset();
             const presets = DBState.db.translatorPresets;
@@ -57,12 +60,12 @@
     </button>
 
     <button
-        class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer"
+        class="mr-2 text-textcolor2 hover:text-primary cursor-pointer"
         onclick={async () => {
             const presets = DBState.db.translatorPresets;
 
             if (presets.length === 0) {
-                alertError("There must be at least one preset.");
+                notifyError("There must be at least one preset.");
                 return;
             }
 
@@ -81,12 +84,12 @@
     </button>
 
     <button
-        class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer"
+        class="mr-2 text-textcolor2 hover:text-red-400 cursor-pointer"
         onclick={async () => {
             const presets = DBState.db.translatorPresets;
 
             if (presets.length <= 1) {
-                alertError("There must be at least one preset.");
+                notifyError("There must be at least one preset.");
                 return;
             }
 
@@ -108,13 +111,13 @@
     <div class="ml-2 mr-4 w-px h-full bg-darkborderc"></div>
 
     <button
-        class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer"
+        class="mr-2 text-textcolor2 hover:text-primary cursor-pointer"
         onclick={async () => {
             try {
                 const presets = DBState.db.translatorPresets;
 
                 if (presets.length === 0) {
-                    alertError("There must be at least one preset.");
+                    notifyError("There must be at least one preset.");
                     return;
                 }
 
@@ -123,7 +126,7 @@
                     getTranslatorPresetDownloadName(preset.name),
                     await encodeTranslatorPresetFile(preset)
                 );
-                alertNormal(language.successExport);
+                notifySuccess(language.successExport);
             } catch (error) {
                 alertError(`${error}`);
             }
@@ -133,7 +136,7 @@
     </button>
 
     <button
-        class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer"
+        class="mr-2 text-textcolor2 hover:text-primary cursor-pointer"
         onclick={async () => {
             try {
                 const selectedFile = await selectSingleFile(translatorPresetImportExtensions);
@@ -148,7 +151,7 @@
                 DBState.db.translatorPresetId = DBState.db.translatorPresets.length - 1;
                 normalizeTranslatorPresets();
 
-                alertNormal(language.successImport);
+                notifySuccess(language.successImport);
             } catch (error) {
                 alertError(`${error}`);
             }
@@ -160,8 +163,9 @@
 
 {#if DBState.db.translatorPresets?.[DBState.db.translatorPresetId]}
     {@const preset = DBState.db.translatorPresets[DBState.db.translatorPresetId]}
-    <span class="text-textcolor mt-4">{language.translationResponseSize}</span>
+    <span class="text-textcolor mt-4">{language.translationResponseSize} <Help key="translationResponseSize" /></span>
     <NumberInput
+        className="mt-2"
         min={0}
         max={2048}
         marginBottom={true}
@@ -172,6 +176,7 @@
     />
     <span class="text-textcolor mt-4">{language.translatorPrompt} <Help key="translatorPrompt" /></span>
     <TextAreaInput
+        className="mt-2"
         bind:value={() => preset.prompt, (value) => {
             preset.prompt = value;
             syncCurrentTranslatorPreset();

@@ -2,7 +2,7 @@
     import { DBState } from 'src/ts/stores.svelte';
     import Hub from "./Realm/RealmMain.svelte";
     import { OpenRealmStore, RealmInitialOpenChar } from "src/ts/stores.svelte";
-    import { ArrowLeft } from "@lucide/svelte";
+    import { ArrowLeft, FolderCodeIcon, MailIcon, SendIcon, UsersIcon } from "@lucide/svelte";
     import { getVersionString, openURL } from "src/ts/globalApi.svelte";
     import { language } from "src/lang";
     import { getRisuHub, hubAdditionalHTML } from "src/ts/characterCards";
@@ -10,6 +10,9 @@
     import Title from "./Title.svelte";
     import { updateInfoStore, updatePopupStore } from "src/ts/update";
     import { publicStatsStore } from "src/ts/publicStats";
+
+    const relatedLinkIconClass =
+      "h-40 w-40 md:h-44 md:w-44 origin-right -rotate-12 opacity-[0.12] transition-all duration-500 group-hover:scale-105 group-hover:opacity-[0.22]";
 </script>
 <div class="h-full w-full flex flex-col overflow-y-auto items-center">
     {#if !$OpenRealmStore}
@@ -47,6 +50,64 @@
     <div class="w-full flex p-4 flex-col text-textcolor max-w-4xl">
       {#if !$OpenRealmStore}
       <div class="mt-4 mb-4 w-full border-t border-t-selected"></div>
+      <h1 class="text-2xl font-bold mb-4">
+        Related Links
+      </h1>
+        <div class="grid w-full grid-cols-1 gap-4 p-2 md:grid-cols-2">
+          <button class="group relative flex min-h-35 flex-col justify-center overflow-hidden rounded-2xl border border-borderc/10 bg-darkbg p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-borderc/30 hover:bg-selected/50 hover:shadow-xl hover:shadow-darkbg/50" onclick={() => {
+            openURL("https://github.com/mrbart3885/Risuai-NodeOnly")
+          }}>
+            <div class="relative z-10 w-[68%] sm:w-[70%]">
+              <h2 class="text-2xl font-bold tracking-tight text-textcolor">{language.relatedGithub}</h2>
+              <span class="mt-2 block text-base leading-relaxed text-textcolor2">
+                {language.relatedGithubDesc}
+              </span>
+            </div>
+            <div aria-hidden="true" class="pointer-events-none absolute -right-12 top-1/2 -translate-y-1/2 text-textcolor">
+              <FolderCodeIcon class={relatedLinkIconClass} strokeWidth={1} />
+            </div>
+          </button>
+          <button class="group relative flex min-h-35 flex-col justify-center overflow-hidden rounded-2xl border border-borderc/10 bg-darkbg p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-borderc/30 hover:bg-selected/50 hover:shadow-xl hover:shadow-darkbg/50" onclick={() => {
+            openURL("https://forms.gle/5ms5XntMrfaxmHTSA")
+          }}>
+            <div class="relative z-10 w-[68%] sm:w-[70%]">
+              <h2 class="text-2xl font-bold tracking-tight text-textcolor">{language.relatedFeedbackForm}</h2>
+              <span class="mt-2 block text-base leading-relaxed text-textcolor2">
+                {language.relatedFeedbackFormDesc}
+              </span>
+            </div>
+            <div aria-hidden="true" class="pointer-events-none absolute -right-12 top-1/2 -translate-y-1/2 text-textcolor">
+              <SendIcon class={relatedLinkIconClass} strokeWidth={1} />
+            </div>
+          </button>
+          <button class="group relative flex min-h-35 flex-col justify-center overflow-hidden rounded-2xl border border-borderc/10 bg-darkbg p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-borderc/30 hover:bg-selected/50 hover:shadow-xl hover:shadow-darkbg/50" onclick={() => {
+            openURL("mailto:mrbart3885@gmail.com")
+          }}>
+            <div class="relative z-10 w-[68%] sm:w-[70%]">
+              <h2 class="text-2xl font-bold tracking-tight text-textcolor">{language.relatedContactEmail}</h2>
+              <span class="mt-2 block text-base leading-relaxed text-textcolor2">
+                {language.relatedContactEmailDesc}
+              </span>
+            </div>
+            <div aria-hidden="true" class="pointer-events-none absolute -right-12 top-1/2 -translate-y-1/2 text-textcolor">
+              <MailIcon class={relatedLinkIconClass} strokeWidth={1} />
+            </div>
+          </button>
+          <button class="group relative flex min-h-35 flex-col justify-center overflow-hidden rounded-2xl border border-borderc/10 bg-darkbg p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-borderc/30 hover:bg-selected/50 hover:shadow-xl hover:shadow-darkbg/50" onclick={() => {
+            openURL("https://arca.live/b/characterai")
+          }}>
+            <div class="relative z-10 w-[68%] sm:w-[70%]">
+              <h2 class="text-2xl font-bold tracking-tight text-textcolor">{language.relatedArcaLive}</h2>
+              <span class="mt-2 block text-base leading-relaxed text-textcolor2">
+                {language.relatedArcaLiveDesc}
+              </span>
+            </div>
+            <div aria-hidden="true" class="pointer-events-none absolute -right-12 top-1/2 -translate-y-1/2 text-textcolor">
+              <UsersIcon class={relatedLinkIconClass} strokeWidth={1} />
+            </div>
+          </button>
+        </div>
+      <div class="mt-4 mb-4 w-full border-t border-t-selected"></div>
       <h1 class="text-2xl font-bold">Recently Uploaded<button class="text-base font-medium float-right p-1 bg-darkbg rounded-md hover:ring-3" onclick={() => {
         $OpenRealmStore = true
       }}>Get More</button></h1>
@@ -76,30 +137,10 @@
         {:else}
           <div class="text-textcolor2">{language.hideRealm}</div>
         {/if}
-      <div class="mt-4 mb-4 w-full border-t border-t-selected"></div>
-      <h1 class="text-2xl font-bold mb-4">
-        Related Links
-      </h1>
-        <div class="w-full flex gap-4 p-2 flex-wrap justify-center">
-        <button class="bg-darkbg rounded-lg p-4 flex flex-col hover:bg-selected transition-colors relative lg:w-96 w-full items-start text-start" onclick={() => {
-          openURL("https://github.com/mrbart3885/Risuai-NodeOnly")
-        }}>
-          <h2 class="text-xl">Github</h2>
-          <span class="text-textcolor2">
-            View the source code and contribute to the project.
-          </span>
-        </button>
-        <div class="bg-darkbg rounded-lg p-4 flex flex-col relative lg:w-96 w-full items-start text-start border border-yellow-600">
-          <span class="text-textcolor2">
-            RisuAI NodeOnly는 공식 버전이 아닌 커뮤니티 버전입니다.
-            이슈 제보는 <button class="text-yellow-500 underline hover:text-yellow-400" onclick={() => openURL("https://arca.live/b/characterai")}>아카라이브 AI 채팅 채널</button> 또는 <button class="text-yellow-500 underline hover:text-yellow-400" onclick={() => openURL("https://github.com/mrbart3885/Risuai-NodeOnly/issues")}>Github Issues</button>에 부탁드립니다.
-          </span>
-        </div>
-      </div>
 
       {:else}
         <div class="flex items-center mt-4">
-          <button class="mr-2 text-textcolor2 hover:text-green-500" onclick={() => ($OpenRealmStore = false)}>
+          <button class="mr-2 text-textcolor2 hover:text-primary" onclick={() => ($OpenRealmStore = false)}>
             <ArrowLeft/>
           </button>
         </div>

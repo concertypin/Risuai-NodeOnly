@@ -384,7 +384,7 @@
       {#if summary.tags && summary.tags.length > 0}
         {#each summary.tags as tag}
           <button
-            class="px-2 py-1 text-xs rounded-full bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+            class="px-2 py-1 text-xs rounded-full bg-primary hover:bg-primary/90 text-white transition-colors"
             onclick={() => onOpenTagManager?.(summaryIndex)}
           >
             #{tag}

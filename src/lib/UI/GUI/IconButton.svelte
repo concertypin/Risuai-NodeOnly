@@ -15,7 +15,7 @@
 </script>
 
 <button class={{
-    "flex items-center hover:text-blue-500 transition-colors": true,
+    "flex items-center hover:text-primary transition-colors": true,
     [className]: !!className
 }} id={id} onclick={onclick}>
     {@render children?.()}

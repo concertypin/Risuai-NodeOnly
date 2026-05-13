@@ -36,8 +36,8 @@
     {#if item.helpKey}<Help key={item.helpKey as any}/>{/if}
 </span>
 <TextInput
+    className="mt-2"
     marginBottom={true}
-    size="sm"
     bind:value={localValue}
     placeholder={item.options?.placeholder}
     hideText={item.options?.hideText}

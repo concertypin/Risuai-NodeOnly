@@ -2,7 +2,7 @@
     import { onDestroy, onMount } from "svelte";
     import { v4 } from "uuid";
     import Sortable from 'sortablejs/modular/sortable.core.esm.js';
-    import { DownloadIcon, PencilIcon, HardDriveUploadIcon, MenuIcon, TrashIcon, SplitIcon, FolderPlusIcon, BookmarkCheckIcon, PackageIcon } from "@lucide/svelte";
+    import { DownloadIcon, PencilIcon, HardDriveUploadIcon, MenuIcon, TrashIcon, SplitIcon, FolderPlusIcon, BookmarkCheckIcon, PackageIcon, CopyIcon } from "@lucide/svelte";
 
     import type { Chat, ChatFolder, character } from "src/ts/storage/database.svelte";
     import { ensureChatHydrated } from "src/ts/storage/chatStorage";
@@ -10,11 +10,11 @@
     import { selectedCharID, chatDeselected } from "src/ts/stores.svelte";
 
     import CheckInput from "../UI/GUI/CheckInput.svelte";
-    import Button from "../UI/GUI/Button.svelte";
+    import ShButton from "../UI/GUI/ShButton.svelte";
     import TextInput from "../UI/GUI/TextInput.svelte";
 
     import { exportChat, importChat, exportAllChats } from "src/ts/characters";
-    import { alertChatOptions, alertConfirm, alertError, alertNormal, alertSelect, alertStore } from "src/ts/alert";
+    import { alertConfirm, alertError, alertSelect, alertStore, notifySuccess, notifyError } from "src/ts/alert";
     import { findCharacterbyId, sleep, sortableOptions } from "src/ts/util";
 
     import { bookmarkListOpen, openModuleListStore } from "src/ts/stores.svelte";
@@ -31,6 +31,17 @@
 
     let { chara = $bindable() }: Props = $props();
     let editMode = $state(false)
+
+    // Safety net: chats whose folderId references a deleted folder would
+    // otherwise be invisible (excluded from both the no-folder section and
+    // any folder section). Render them in the no-folder section instead.
+    // The server-side fix prevents new orphans; this guard rescues existing
+    // ones until boot-time normalize touches the disk.
+    const validFolderIds = $derived(
+        new Set((chara.chatFolders ?? []).map(f => f.id).filter(Boolean))
+    )
+    const isOrphanFolder = (folderId: string | null | undefined): boolean =>
+        folderId != null && !validFolderIds.has(folderId)
 
     let chatsStb: Sortable[] = []
     let folderStb: Sortable = null
@@ -140,7 +151,7 @@
     })
 </script>
 <div class="flex flex-col w-full">
-    <Button className="relative bottom-2" onclick={() => {
+    <ShButton className="relative bottom-2 w-full" onclick={() => {
         const len = chara.chats.length
         let chats = chara.chats
         const newChat = {
@@ -151,7 +162,7 @@
         changeChatTo(0)
         void requestImmediateSave()
         $ReloadGUIPointer += 1
-    }}>{language.newChat}</Button>
+    }}>{language.newChat}</ShButton>
 
     {#key sorted}
     <div class="flex flex-col mt-2 overflow-y-auto max-h-80" bind:this={listEle}>
@@ -188,7 +199,7 @@
                             if(e.key === 'Enter'){
                                 e.currentTarget.click()
                             }
-                        }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={async (e) => {
+                        }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={async (e) => {
                             e.stopPropagation()
                             const sel = parseInt(await alertSelect([language.changeFolderColor, language.cancel]))
                             switch (sel) {
@@ -205,7 +216,7 @@
                             if(e.key === 'Enter'){
                                 e.currentTarget.click()
                             }
-                        }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={() => {
+                        }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={() => {
                             editMode = !editMode
                         }}>
                             <PencilIcon size={18}/>
@@ -214,7 +225,7 @@
                             if(e.key === 'Enter'){
                                 e.currentTarget.click()
                             }
-                        }} class="text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async (e) => {
+                        }} class="text-textcolor2 hover:text-red-400 cursor-pointer" onclick={async (e) => {
                             e.stopPropagation()
                             const d = await alertConfirm(`${language.removeConfirm}${folder.name}`)
                             if (d) {
@@ -260,58 +271,34 @@
                                 if(e.key === 'Enter'){
                                     e.currentTarget.click()
                                 }
-                            }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={async () => {
-                                const option = await alertChatOptions()
-                                switch(option){
-                                    case 0:{
-                                        const chatIdx = chara.chats.indexOf(chat)
-                                        // Hydrate placeholder before copying to ensure full data
-                                        if(chara.chats[chatIdx]?._placeholder){
-                                            await ensureChatHydrated(chara.chats, chatIdx, (chara as character).chaId)
-                                        }
-                                        if(chara.chats[chatIdx]?._placeholder){
-                                            alertError('Failed to load chat data.')
-                                            break
-                                        }
-                                        const newChat = $state.snapshot(chara.chats[chatIdx])
-                                        newChat.name = createChatCopyName(newChat.name, 'Copy')
-                                        newChat.id = v4()
-                                        chara.chats.unshift(newChat)
-                                        changeChatTo(0)
-                                        chara.chats = chara.chats
-                                        void requestImmediateSave()
-                                        break
-                                    }
-                                    case 1:{
-                                        if(chat.bindedPersona){
-                                            const confirm = await alertConfirm(language.doYouWantToUnbindCurrentPersona)
-                                            if(confirm){
-                                                chat.bindedPersona = ''
-                                                alertNormal(language.personaUnbindedSuccess)
-                                            }
-                                        }
-                                        else{
-                                            const confirm = await alertConfirm(language.doYouWantToBindCurrentPersona)
-                                            if(confirm){
-                                                if(!DBState.db.personas[DBState.db.selectedPersona].id){
-                                                    DBState.db.personas[DBState.db.selectedPersona].id = v4()
-                                                }
-                                                chat.bindedPersona = DBState.db.personas[DBState.db.selectedPersona].id
-                                                console.log(DBState.db.personas[DBState.db.selectedPersona])
-                                                alertNormal(language.personaBindedSuccess)
-                                            }
-                                        }
-                                        break
-                                    }
+                            }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={async (e) => {
+                                e.stopPropagation()
+                                const confirmed = await alertConfirm(`${language.copyChatConfirm}${chat.name}`)
+                                if(!confirmed) return
+                                const chatIdx = chara.chats.indexOf(chat)
+                                if(chara.chats[chatIdx]?._placeholder){
+                                    await ensureChatHydrated(chara.chats, chatIdx, (chara as character).chaId)
                                 }
+                                if(chara.chats[chatIdx]?._placeholder){
+                                    alertError('Failed to load chat data.')
+                                    return
+                                }
+                                const newChat = $state.snapshot(chara.chats[chatIdx])
+                                newChat.name = createChatCopyName(newChat.name, 'Copy')
+                                newChat.id = v4()
+                                chara.chats.unshift(newChat)
+                                changeChatTo(0)
+                                chara.chats = chara.chats
+                                void requestImmediateSave()
+                                notifySuccess(language.copyChatSuccess)
                             }}>
-                                <MenuIcon size={18}/>
+                                <CopyIcon size={18}/>
                             </div>
                             <div role="button" tabindex="0" onkeydown={(e) => {
                                 if(e.key === 'Enter'){
                                     e.currentTarget.click()
                                 }
-                            }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={() => {
+                            }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={() => {
                                 editMode = !editMode
                             }}>
                                 <PencilIcon size={18}/>
@@ -320,7 +307,7 @@
                                 if(e.key === 'Enter'){
                                     e.currentTarget.click()
                                 }
-                            }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={async (e) => {
+                            }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={async (e) => {
                                 e.stopPropagation()
                                 exportChat(chara.chats.indexOf(chat))
                             }}>
@@ -330,10 +317,10 @@
                                 if(e.key === 'Enter'){
                                     e.currentTarget.click()
                                 }
-                            }} class="text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async (e) => {
+                            }} class="text-textcolor2 hover:text-red-400 cursor-pointer" onclick={async (e) => {
                                 e.stopPropagation()
                                 if(chara.chats.length === 1){
-                                    alertError(language.errors.onlyOneChat)
+                                    notifyError(language.errors.onlyOneChat)
                                     return
                                 }
                                 const d = await alertConfirm(`${language.removeConfirm}${chat.name}`)
@@ -359,7 +346,7 @@
         <!-- chat without folder div -->
         <div class="risu-chat flex flex-col">
             {#each chara.chats as chat, i}
-            {#if chat.folderId == null}
+            {#if chat.folderId == null || isOrphanFolder(chat.folderId)}
             <button data-risu-chat-idx={i} onclick={() => {
                 if(!editMode){
                     if(i === chara.chatPage && !$chatDeselected){
@@ -381,58 +368,33 @@
                         if(e.key === 'Enter'){
                             e.currentTarget.click()
                         }
-                    }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={async () => {
-                        const option = await alertChatOptions()
-                        switch(option){
-                            case 0:{
-                                // Hydrate placeholder before copying to ensure full data
-                                if(chara.chats[i]?._placeholder){
-                                    await ensureChatHydrated(chara.chats, i, (chara as character).chaId)
-                                }
-                                if(chara.chats[i]?._placeholder){
-                                    alertError('Failed to load chat data.')
-                                    break
-                                }
-                                const newChat = $state.snapshot(chara.chats[i])
-                                newChat.name = createChatCopyName(newChat.name, 'Copy')
-                                newChat.id = v4()
-                                chara.chats.unshift(newChat)
-                                changeChatTo(0)
-                                chara.chats = chara.chats
-                                void requestImmediateSave()
-                                break
-                            }
-                            case 1:{
-                                const chat = chara.chats[i]
-                                if(chat.bindedPersona){
-                                    const confirm = await alertConfirm(language.doYouWantToUnbindCurrentPersona)
-                                    if(confirm){
-                                        chat.bindedPersona = ''
-                                        alertNormal(language.personaUnbindedSuccess)
-                                    }
-                                }
-                                else{
-                                    const confirm = await alertConfirm(language.doYouWantToBindCurrentPersona)
-                                    if(confirm){
-                                        if(!DBState.db.personas[DBState.db.selectedPersona].id){
-                                            DBState.db.personas[DBState.db.selectedPersona].id = v4()
-                                        }
-                                        chat.bindedPersona = DBState.db.personas[DBState.db.selectedPersona].id
-                                        console.log(DBState.db.personas[DBState.db.selectedPersona])
-                                        alertNormal(language.personaBindedSuccess)
-                                    }
-                                }
-                                break
-                            }
+                    }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={async (e) => {
+                        e.stopPropagation()
+                        const confirmed = await alertConfirm(`${language.copyChatConfirm}${chat.name}`)
+                        if(!confirmed) return
+                        if(chara.chats[i]?._placeholder){
+                            await ensureChatHydrated(chara.chats, i, (chara as character).chaId)
                         }
+                        if(chara.chats[i]?._placeholder){
+                            alertError('Failed to load chat data.')
+                            return
+                        }
+                        const newChat = $state.snapshot(chara.chats[i])
+                        newChat.name = createChatCopyName(newChat.name, 'Copy')
+                        newChat.id = v4()
+                        chara.chats.unshift(newChat)
+                        changeChatTo(0)
+                        chara.chats = chara.chats
+                        void requestImmediateSave()
+                        notifySuccess(language.copyChatSuccess)
                     }}>
-                        <MenuIcon size={18}/>
+                        <CopyIcon size={18}/>
                     </div>
                     <div role="button" tabindex="0" onkeydown={(e) => {
                         if(e.key === 'Enter'){
                             e.currentTarget.click()
                         }
-                    }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={() => {
+                    }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={() => {
                         editMode = !editMode
                     }}>
                         <PencilIcon size={18}/>
@@ -441,7 +403,7 @@
                         if(e.key === 'Enter'){
                             e.currentTarget.click()
                         }
-                    }} class="text-textcolor2 hover:text-green-500 mr-1 cursor-pointer" onclick={async (e) => {
+                    }} class="text-textcolor2 hover:text-primary mr-1 cursor-pointer" onclick={async (e) => {
                         e.stopPropagation()
                         exportChat(i)
                     }}>
@@ -451,10 +413,10 @@
                         if(e.key === 'Enter'){
                             e.currentTarget.click()
                         }
-                    }} class="text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async (e) => {
+                    }} class="text-textcolor2 hover:text-red-400 cursor-pointer" onclick={async (e) => {
                         e.stopPropagation()
                         if(chara.chats.length === 1){
-                            alertError(language.errors.onlyOneChat)
+                            notifyError(language.errors.onlyOneChat)
                             return
                         }
                         const d = await alertConfirm(`${language.removeConfirm}${chat.name}`)
@@ -479,22 +441,22 @@
 
     <div class="border-t border-selected mt-2">
         <div class="flex mt-2 ml-2 items-center">
-            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" onclick={() => {
+            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={() => {
                 exportAllChats()
             }}>
                 <DownloadIcon size={18}/>
             </button>
-            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" onclick={() => {
+            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={() => {
                 importChat()
             }}>
                 <HardDriveUploadIcon size={18}/>
             </button>
-            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" onclick={() => {
+            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={() => {
                 editMode = !editMode
             }}>
                 <PencilIcon size={18}/>
             </button>
-            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" onclick={() => {
+            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={() => {
                 alertStore.set({
                   type: "branches",
                   msg: ""
@@ -502,12 +464,12 @@
             }}>
                 <SplitIcon size={18}/>
             </button>
-            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" onclick={() => {
+            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={() => {
                 $bookmarkListOpen = true;
             }}>
                 <BookmarkCheckIcon size={18}/>
             </button>
-            <button class="ml-auto text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" onclick={() => {
+            <button class="ml-auto text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={() => {
                 if (!chara.chatFolders) {
                     chara.chatFolders = []
                 }
@@ -540,16 +502,15 @@
                 <PersonaBind />
             {/if}
             <Toggles bind:chara={chara} noContainer />
-            <button class="flex w-full items-center justify-center gap-1.5 py-2 px-4 mt-2 rounded-md border border-darkborderc bg-darkbutton hover:bg-selected text-textcolor text-md cursor-pointer transition-colors shadow-xs"
-                onclick={() => {
-                    const char = DBState.db.characters[$selectedCharID]
-                    if (!char) return
-                    char.chats[char.chatPage].modules ??= []
-                    openModuleListStore.set(true)
-                }}>
+            <ShButton className="w-full mt-2" onclick={() => {
+                const char = DBState.db.characters[$selectedCharID]
+                if (!char) return
+                char.chats[char.chatPage].modules ??= []
+                openModuleListStore.set(true)
+            }}>
                 <PackageIcon size={16} class="shrink-0" />
                 <span class="truncate">{language.modules}</span>
-            </button>
+            </ShButton>
         {/if}
     </div>
 </div>

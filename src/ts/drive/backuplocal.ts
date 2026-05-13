@@ -1,4 +1,4 @@
-import { alertError, alertNormal, alertStore, alertWait, alertMd, alertConfirm, waitAlert } from "../alert";
+import { alertError, alertStore, alertWait, alertMd, alertConfirm, waitAlert, notifySuccess, notifyInfo, notifyError } from "../alert";
 import { downloadFile, LocalWriter, forageStorage } from "../globalApi.svelte";
 import { encodeRisuSaveLegacy } from "../storage/risuSave";
 import { getDatabase, type Chat } from "../storage/database.svelte";
@@ -12,41 +12,56 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
+async function streamBackupToDisk(response: Response, fallbackName: string){
+    const disposition = response.headers.get('content-disposition') ?? ''
+    const fileName = disposition.match(/filename=\"?([^"]+)\"?/)?.[1] ?? fallbackName
+    const totalBytes = Number(response.headers.get('content-length') ?? '0')
+
+    if (response.body) {
+        const streamSaver = await import('streamsaver')
+        const writableStream = streamSaver.createWriteStream(fileName)
+        const writer = writableStream.getWriter()
+        const reader = response.body.getReader()
+        let downloadedBytes = 0
+
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+                break
+            }
+            downloadedBytes += value.length
+            if (totalBytes > 0) {
+                const progress = ((downloadedBytes / totalBytes) * 100).toFixed(2)
+                alertWait(`Saving local backup... (${progress}%)`)
+            } else {
+                alertWait(`Saving local backup... (${(downloadedBytes / (1024 * 1024)).toFixed(1)} MB)`)
+            }
+            await writer.write(value)
+        }
+        await writer.close()
+    } else {
+        await downloadFile(fileName, new Uint8Array(await response.arrayBuffer()))
+    }
+}
+
 export async function SaveLocalBackup(){
     try {
         alertWait("Saving local backup...")
         const response = await forageStorage.exportBackup()
-        const disposition = response.headers.get('content-disposition') ?? ''
-        const fileName = disposition.match(/filename=\"?([^"]+)\"?/)?.[1] ?? `risu-backup-${Date.now()}.bin`
-        const totalBytes = Number(response.headers.get('content-length') ?? '0')
+        await streamBackupToDisk(response, `risu-backup-${Date.now()}.bin`)
+        notifySuccess('Success')
+    } catch (error) {
+        console.error(error)
+        alertError('Failed')
+    }
+}
 
-        if (response.body) {
-            const streamSaver = await import('streamsaver')
-            const writableStream = streamSaver.createWriteStream(fileName)
-            const writer = writableStream.getWriter()
-            const reader = response.body.getReader()
-            let downloadedBytes = 0
-
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) {
-                    break
-                }
-                downloadedBytes += value.length
-                if (totalBytes > 0) {
-                    const progress = ((downloadedBytes / totalBytes) * 100).toFixed(2)
-                    alertWait(`Saving local backup... (${progress}%)`)
-                } else {
-                    alertWait(`Saving local backup... (${(downloadedBytes / (1024 * 1024)).toFixed(1)} MB)`)
-                }
-                await writer.write(value)
-            }
-            await writer.close()
-        } else {
-            await downloadFile(fileName, new Uint8Array(await response.arrayBuffer()))
-        }
-
-        alertNormal('Success')
+export async function SaveLocalBackupForUpstream(){
+    try {
+        alertWait("Saving local backup...")
+        const response = await forageStorage.exportBackup({ target: 'upstream' })
+        await streamBackupToDisk(response, `risu-backup-${Date.now()}-upstream.bin`)
+        notifySuccess('Success')
     } catch (error) {
         console.error(error)
         alertError('Failed')
@@ -207,7 +222,7 @@ export async function SavePartialLocalBackup(){
         }
         alertMd(message)
     } else {
-        alertNormal('Success')
+        notifySuccess('Success')
     }
 }
 
@@ -292,12 +307,12 @@ export async function CleanupMigratedFiles() {
         try {
             scan = await forageStorage.scanCleanup()
         } catch (error) {
-            alertError(error instanceof Error ? error.message : language.cleanupMigratedNotReady)
+            notifyError(error instanceof Error ? error.message : language.cleanupMigratedNotReady)
             return
         }
 
         if (scan.count === 0) {
-            alertNormal(language.cleanupMigratedNoFiles)
+            notifyInfo(language.cleanupMigratedNoFiles)
             return
         }
 
@@ -307,10 +322,10 @@ export async function CleanupMigratedFiles() {
         alertWait(language.cleanupMigratedCleaning)
         const result = await forageStorage.executeCleanup()
 
-        alertNormal(language.cleanupMigratedSuccess(result.removed, formatBytes(result.freedBytes)))
+        notifySuccess(language.cleanupMigratedSuccess(result.removed, formatBytes(result.freedBytes)))
     } catch (error) {
         console.error(error)
-        alertError(error instanceof Error ? error.message : 'Cleanup failed')
+        notifyError(error instanceof Error ? error.message : 'Cleanup failed')
     }
 }
 
@@ -324,7 +339,7 @@ export async function SaveServerBackup() {
             const bytesStr = formatBytes(bytes)
             alertWait(`${language.serverBackupSaving} (${pct}% - ${bytesStr})`)
         })
-        alertNormal(language.serverBackupSaveSuccess(result.filename, formatBytes(result.size)))
+        notifySuccess(language.serverBackupSaveSuccess(result.filename, formatBytes(result.size)))
     } catch (error) {
         console.error(error)
         alertError(error instanceof Error ? error.message : 'Server backup failed')

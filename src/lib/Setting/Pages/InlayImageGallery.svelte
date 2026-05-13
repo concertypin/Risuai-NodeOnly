@@ -1,10 +1,16 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
-  import { ChevronLeft, ChevronRight, X, Download, Trash2, Info, ImageIcon } from '@lucide/svelte'
+  import { Collapsible } from 'bits-ui'
+  import { ChevronDown as ChevronDownIcon, ChevronLeft, ChevronRight, Funnel as FilterIcon, X, Download, Trash2, Info, ImageIcon } from '@lucide/svelte'
+  import OptionInput from "../../UI/GUI/OptionInput.svelte";
+  import ShBadge from '../../UI/GUI/ShBadge.svelte'
+  import ShButton from '../../UI/GUI/ShButton.svelte'
+  import ShSelect from '../../UI/GUI/ShSelect.svelte'
 
   import { language } from 'src/lang'
-  import { alertConfirm, alertError, alertNormal } from 'src/ts/alert'
+  import { SizeStore } from 'src/ts/stores.svelte'
+  import { alertConfirm, notifySuccess, notifyError } from 'src/ts/alert'
   import { downloadFile } from 'src/ts/globalApi.svelte'
   import {
     getCharacterChatIndex,
@@ -17,7 +23,12 @@
     type InlayExplorerItem,
     type InlayScanResult,
   } from 'src/ts/process/files/inlays'
-  import Button from '../UI/GUI/Button.svelte'
+  import SettingPage from '../../UI/GUI/SettingPage.svelte'
+  import SettingTabs from '../../UI/GUI/SettingTabs.svelte'
+  import SettingRenderer from '../SettingRenderer.svelte'
+  import { inlayImageSettingsItems } from 'src/ts/setting/inlayImageSettingsData'
+
+  let submenu = $state(0)
 
   const PAGE_SIZE = 40
 
@@ -30,6 +41,7 @@
   let displayCount = $state(PAGE_SIZE)
   let loading = $state(true)
   let paging = $state(false)
+  let galleryScrollContainer: HTMLDivElement | null = $state(null)
   let loadMoreSentinel: HTMLDivElement | null = $state(null)
   let selection = $state<Set<string>>(new SvelteSet())
 
@@ -38,6 +50,7 @@
   let characterFilter = $state('')
   let chatFilter = $state('')
   let specialFilter = $state<SpecialFilter>('all')
+  let filtersOpen = $state(false)
 
   // Scan state
   let scanResult = $state<InlayScanResult | null>(null)
@@ -48,9 +61,15 @@
   let viewerUrl = $state('')
   let viewerLoading = $state(false)
   let viewerError = $state('')
-  let infoPanelOpen = $state(true)
+  // Mobile defaults to image-only — narrow info panel would dominate the viewport.
+  let infoPanelOpen = $state($SizeStore.w >= 768)
 
   // --- Derived ---
+  const activeFilterCount = $derived(
+    (characterFilter !== '' ? 1 : 0) +
+    (chatFilter !== '' ? 1 : 0) +
+    (specialFilter !== 'all' ? 1 : 0)
+  )
   const characterMap = $derived(new Map(characterIndex.map((char) => [char.chaId, char])))
   const allChatIds = $derived(new Set(characterIndex.flatMap((char) => char.chats.map((chat) => chat.id))))
   const availableChats = $derived(characterFilter ? (characterMap.get(characterFilter)?.chats ?? []) : [])
@@ -191,14 +210,14 @@
     try {
       const asset = await getInlayAssetBlob(item.id)
       if (!asset) {
-        alertError('Failed to load image for download.')
+        notifyError('Failed to load image for download.')
         return
       }
       const buffer = new Uint8Array(await asset.data.arrayBuffer())
       await downloadFile(sanitizeFileName(item.name), buffer)
-      alertNormal(language.successExport)
+      notifySuccess(language.successExport)
     } catch (error) {
-      alertError(`${error}`)
+      notifyError(`${error}`)
     }
   }
 
@@ -247,6 +266,7 @@
     chatFilter
     specialFilter
     displayCount = PAGE_SIZE
+    galleryScrollContainer?.scrollTo({ top: 0 })
   })
 
   // Auto-scan when orphan-message filter is selected
@@ -271,7 +291,7 @@
   // Infinite scroll
   let observer: IntersectionObserver | null = null
   $effect(() => {
-    if (!loadMoreSentinel || !hasMore) {
+    if (!galleryScrollContainer || !loadMoreSentinel || !hasMore) {
       observer?.disconnect()
       return
     }
@@ -284,7 +304,7 @@
     observer?.disconnect()
     observer = new IntersectionObserver(
       (entries) => { if (entries[0]?.isIntersecting) loadMore() },
-      { root: null, rootMargin: '200px 0px', threshold: 0 }
+      { root: galleryScrollContainer, rootMargin: '200px 0px', threshold: 0 }
     )
     observer.observe(loadMoreSentinel)
     return () => {
@@ -311,163 +331,186 @@
   loadAssets()
 </script>
 
-<h2 class="text-4xl text-textcolor mt-6 font-black">{language.playground.inlayImageGallery}</h2>
+<div class="h-full min-h-0 flex flex-col overflow-hidden">
+  <div class="shrink-0">
+    <SettingPage title={language.playground.inlayImageGallery}>
+      <SettingTabs tabs={[
+        { label: language.playground.inlayImageList, value: 0 },
+        { label: language.settings, value: 1 },
+      ]} bind:selected={submenu} />
+    </SettingPage>
+  </div>
 
-<!-- Sticky header -->
-<header class="flex flex-col gap-3 py-4 sticky top-0 bg-bgcolor z-20">
-  <div class="flex flex-wrap gap-3 items-center">
-    <span class="text-textcolor2 text-sm">
-      {language.playground.inlayTotalAssets.replace('{count}', filteredItems.length.toString())}
-    </span>
-    <div class="flex gap-2 ml-auto">
-      {#if hasSelection}
-        <Button onclick={deleteSelected} styled="danger" size="sm">{language.playground.inlayDeleteSelected}</Button>
-        <Button onclick={deselectAll} styled="primary" size="sm">
-          {language.playground.inlayDeselectAll} ({selection.size})
-        </Button>
-      {:else if allItems.length > 0}
-        <Button onclick={selectAll} styled="primary" size="sm">{language.playground.inlaySelectAll}</Button>
-      {/if}
+  {#if submenu === 1}
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <SettingRenderer items={inlayImageSettingsItems} />
     </div>
-  </div>
-
-  {#if allItems.length > 0}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-      <label class="flex flex-col gap-1 text-xs text-textcolor2">
-        <span>{language.playground.inlaySort}</span>
-        <select bind:value={sortKey} class="rounded border border-darkborderc bg-darkbg px-2 py-1.5 text-textcolor text-sm">
-          <option value="updated-desc">{language.playground.inlaySortUpdatedDesc}</option>
-          <option value="updated-asc">{language.playground.inlaySortUpdatedAsc}</option>
-          <option value="created-desc">{language.playground.inlaySortCreatedDesc}</option>
-          <option value="created-asc">{language.playground.inlaySortCreatedAsc}</option>
-        </select>
-      </label>
-      <label class="flex flex-col gap-1 text-xs text-textcolor2">
-        <span>{language.character}</span>
-        <select bind:value={characterFilter} class="rounded border border-darkborderc bg-darkbg px-2 py-1.5 text-textcolor text-sm">
-          <option value="">{language.none}</option>
-          {#each characterIndex as char (char.chaId)}
-            <option value={char.chaId}>{char.name}</option>
-          {/each}
-        </select>
-      </label>
-      <label class="flex flex-col gap-1 text-xs text-textcolor2">
-        <span>{language.Chat}</span>
-        <select bind:value={chatFilter} class="rounded border border-darkborderc bg-darkbg px-2 py-1.5 text-textcolor text-sm" disabled={!characterFilter}>
-          <option value="">{language.none}</option>
-          {#each availableChats as chat (chat.id)}
-            <option value={chat.id}>{chat.name}</option>
-          {/each}
-        </select>
-      </label>
-      <label class="flex flex-col gap-1 text-xs text-textcolor2">
-        <span>{language.playground.inlayFilter}</span>
-        <select bind:value={specialFilter} class="rounded border border-darkborderc bg-darkbg px-2 py-1.5 text-textcolor text-sm">
-          <option value="all">{language.playground.inlayFilterAll}</option>
-          <option value="meta-missing">{language.playground.inlayFilterMetaMissing}</option>
-          <option value="orphan-character">{language.playground.inlayFilterOrphanCharacter}</option>
-          <option value="orphan-chat">{language.playground.inlayFilterOrphanChat}</option>
-          <option value="orphan-message">{language.playground.inlayFilterOrphanMessage}</option>
-        </select>
-      </label>
-    </div>
-  {/if}
-</header>
-
-{#if loading}
-  <div class="flex flex-col items-center justify-center py-20 gap-4">
-    <div class="w-12 h-12 border-4 border-darkborderc border-t-blue-500 rounded-full animate-spin"></div>
-    <p class="text-textcolor2 text-sm">{language.playground.inlayLoadingMore}</p>
-  </div>
-{:else if filteredItems.length === 0}
-  <div class="text-center py-20 text-textcolor2">
-    <p class="text-lg">{language.playground.inlayEmpty}</p>
-    <p class="text-sm mt-2">{language.playground.inlayImageGalleryEmptyDesc}</p>
-  </div>
-{:else}
-  <!-- Card grid -->
-  <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-    {#each displayedItems as item (item.id)}
-      <div
-        class="relative group aspect-[2/3] rounded-lg overflow-hidden bg-darkbg border cursor-pointer select-none transition-colors
-          {selection.has(item.id) ? 'border-blue-500' : 'border-darkborderc hover:border-darkborderc/60'}"
-        role="button"
-        tabindex="0"
-        onclick={() => openViewer(item.id)}
-        onkeydown={(event) => handleCardKeydown(event, item.id)}
-      >
-        <!-- Thumbnail: use direct /api/asset/ URL for HTTP caching -->
-        {#if item.type === 'image'}
-          <img alt={item.name} class="w-full h-full object-cover" src={`/api/asset/${Buffer.from('inlay_thumb/' + item.id, 'utf-8').toString('hex')}`} loading="lazy" />
-        {:else}
-          <div class="w-full h-full flex items-center justify-center text-textcolor2/40">
-            <ImageIcon size={28} />
-          </div>
-        {/if}
-
-        <!-- Selection checkbox -->
-        <button
-          class="absolute top-1.5 left-1.5 z-10 w-5 h-5 rounded flex items-center justify-center transition-all border
-            {selection.has(item.id)
-              ? 'bg-blue-500 border-blue-500'
-              : 'bg-black/50 border-white/40 opacity-0 group-hover:opacity-100'}"
-          onclick={(e) => { e.stopPropagation(); toggleSelect(item.id) }}
-        >
-          {#if selection.has(item.id)}
-            <svg class="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 6l3 3 5-5" />
-            </svg>
+  {:else}
+    <header class="shrink-0 flex flex-col gap-3 bg-bgcolor pb-4">
+      <div class="flex flex-wrap gap-3 items-center">
+        <span class="text-textcolor2 text-sm">
+          {language.playground.inlayTotalAssets.replace('{count}', filteredItems.length.toString())}
+        </span>
+        <div class="flex gap-2 ml-auto">
+          {#if hasSelection}
+            <ShButton onclick={deleteSelected} variant="destructive" size="sm">{language.playground.inlayDeleteSelected}</ShButton>
+            <ShButton onclick={deselectAll} variant="default" size="sm">
+              {language.playground.inlayDeselectAll} ({selection.size})
+            </ShButton>
+          {:else if allItems.length > 0}
+            <ShButton onclick={selectAll} variant="default" size="sm">{language.playground.inlaySelectAll}</ShButton>
           {/if}
-        </button>
-
-        <!-- Status dot -->
-        {#if getStatusLabel(item)}
-          <div
-            class="absolute top-1.5 right-1.5 z-10 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center"
-            title={getStatusLabel(item) ?? ''}
-          >
-            <span class="text-white text-[9px] font-bold leading-none">!</span>
-          </div>
-        {/if}
-
-        <!-- Bottom gradient overlay (hover) -->
-        <div
-          class="absolute inset-x-0 bottom-0 pt-8 pb-2 px-2
-            bg-gradient-to-t from-black/80 via-black/40 to-transparent
-            opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col"
-        >
-          <p class="text-white text-xs font-medium truncate leading-tight">{item.name}</p>
-          {#if getCharacterName(item)}
-            <p class="text-white/60 text-[10px] truncate leading-tight">{getCharacterName(item)}</p>
-          {/if}
-          <div class="flex gap-1.5 mt-1.5 justify-end">
-            <button
-              class="w-6 h-6 rounded bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
-              onclick={(e) => { e.stopPropagation(); downloadCurrent(item) }}
-              title={language.download}
-            >
-              <Download size={11} />
-            </button>
-            <button
-              class="w-6 h-6 rounded bg-red-500/30 hover:bg-red-500/70 flex items-center justify-center text-white transition-colors"
-              onclick={(e) => { e.stopPropagation(); deleteAsset(item.id, item.name) }}
-              title={language.playground.inlayDelete}
-            >
-              <Trash2 size={11} />
-            </button>
-          </div>
         </div>
       </div>
-    {/each}
-  </div>
 
-  <!-- Load more spinner -->
-  {#if hasMore}
-    <div bind:this={loadMoreSentinel} class="flex items-center justify-center py-10">
-      <div class="w-7 h-7 border-4 border-darkborderc border-t-blue-500/70 rounded-full animate-spin"></div>
+      {#if allItems.length > 0}
+        <Collapsible.Root bind:open={filtersOpen}>
+          <Collapsible.Trigger class="group flex items-center gap-1 text-textcolor2 hover:text-textcolor text-sm transition-colors">
+            <FilterIcon size={14} />
+            <span>{language.playground.inlayFilter}</span>
+            {#if activeFilterCount > 0}
+              <ShBadge variant="secondary" className="ml-1">{activeFilterCount}</ShBadge>
+            {/if}
+            <ChevronDownIcon size={14} class="transition-transform group-data-[state=closed]:-rotate-90" />
+          </Collapsible.Trigger>
+          <Collapsible.Content>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+              <div class="flex flex-col gap-1 text-xs text-textcolor2">
+                <span>{language.playground.inlaySort}</span>
+                <ShSelect bind:value={sortKey} size="sm">
+                  <OptionInput value="updated-desc">{language.playground.inlaySortUpdatedDesc}</OptionInput>
+                  <OptionInput value="updated-asc">{language.playground.inlaySortUpdatedAsc}</OptionInput>
+                  <OptionInput value="created-desc">{language.playground.inlaySortCreatedDesc}</OptionInput>
+                  <OptionInput value="created-asc">{language.playground.inlaySortCreatedAsc}</OptionInput>
+                </ShSelect>
+              </div>
+              <div class="flex flex-col gap-1 text-xs text-textcolor2">
+                <span>{language.character}</span>
+                <ShSelect bind:value={characterFilter} size="sm">
+                  <OptionInput value="">{language.none}</OptionInput>
+                  {#each characterIndex as char (char.chaId)}
+                    <OptionInput value={char.chaId}>{char.name}</OptionInput>
+                  {/each}
+                </ShSelect>
+              </div>
+              <div class="flex flex-col gap-1 text-xs text-textcolor2">
+                <span>{language.Chat}</span>
+                <ShSelect bind:value={chatFilter} size="sm">
+                  <OptionInput value="">{language.none}</OptionInput>
+                  {#each availableChats as chat (chat.id)}
+                    <OptionInput value={chat.id}>{chat.name}</OptionInput>
+                  {/each}
+                </ShSelect>
+              </div>
+              <div class="flex flex-col gap-1 text-xs text-textcolor2">
+                <span>{language.playground.inlayFilter}</span>
+                <ShSelect bind:value={specialFilter} size="sm">
+                  <OptionInput value="all">{language.playground.inlayFilterAll}</OptionInput>
+                  <OptionInput value="meta-missing">{language.playground.inlayFilterMetaMissing}</OptionInput>
+                  <OptionInput value="orphan-character">{language.playground.inlayFilterOrphanCharacter}</OptionInput>
+                  <OptionInput value="orphan-chat">{language.playground.inlayFilterOrphanChat}</OptionInput>
+                  <OptionInput value="orphan-message">{language.playground.inlayFilterOrphanMessage}</OptionInput>
+                </ShSelect>
+              </div>
+            </div>
+          </Collapsible.Content>
+        </Collapsible.Root>
+      {/if}
+    </header>
+
+    <div bind:this={galleryScrollContainer} class="flex-1 min-h-0 overflow-y-auto pr-1 pb-4">
+      {#if loading}
+        <div class="min-h-full flex flex-col items-center justify-center gap-4">
+          <div class="w-12 h-12 border-4 border-darkborderc border-t-borderc rounded-full animate-spin"></div>
+          <p class="text-textcolor2 text-sm">{language.playground.inlayLoadingMore}</p>
+        </div>
+      {:else if filteredItems.length === 0}
+        <div class="min-h-full flex flex-col items-center justify-center text-center text-textcolor2">
+          <p class="text-lg">{language.playground.inlayEmpty}</p>
+          <p class="text-sm mt-2">{language.playground.inlayImageGalleryEmptyDesc}</p>
+        </div>
+      {:else}
+        <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          {#each displayedItems as item (item.id)}
+            <div
+              class="relative group aspect-[2/3] rounded-lg overflow-hidden bg-darkbg border cursor-pointer select-none transition-colors
+                {selection.has(item.id) ? 'border-borderc' : 'border-darkborderc hover:border-borderc/70'}"
+              role="button"
+              tabindex="0"
+              onclick={() => openViewer(item.id)}
+              onkeydown={(event) => handleCardKeydown(event, item.id)}
+            >
+              {#if item.type === 'image'}
+                <img alt={item.name} class="w-full h-full object-cover" src={`/api/asset/${Buffer.from('inlay_thumb/' + item.id, 'utf-8').toString('hex')}`} loading="lazy" />
+              {:else}
+                <div class="w-full h-full flex items-center justify-center text-textcolor2/40">
+                  <ImageIcon size={28} />
+                </div>
+              {/if}
+
+              <button
+                class="absolute top-1.5 left-1.5 z-10 w-5 h-5 rounded flex items-center justify-center transition-all border
+                  {selection.has(item.id)
+                    ? 'bg-borderc border-borderc'
+                    : 'bg-black/50 border-white/40 opacity-0 group-hover:opacity-100'}"
+                onclick={(e) => { e.stopPropagation(); toggleSelect(item.id) }}
+                title={selection.has(item.id) ? language.playground.inlayDeselectAll : language.playground.inlaySelectAll}
+              >
+                {#if selection.has(item.id)}
+                  <svg class="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 6l3 3 5-5" />
+                  </svg>
+                {/if}
+              </button>
+
+              {#if getStatusLabel(item)}
+                <div
+                  class="absolute top-1.5 right-1.5 z-10 w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center"
+                  title={getStatusLabel(item) ?? ''}
+                >
+                  <span class="text-black text-[9px] font-bold leading-none">!</span>
+                </div>
+              {/if}
+
+              <div
+                class="absolute inset-x-0 bottom-0 pt-8 pb-2 px-2
+                  bg-gradient-to-t from-black/80 via-black/40 to-transparent
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col"
+              >
+                <p class="text-white text-xs font-medium truncate leading-tight">{item.name}</p>
+                {#if getCharacterName(item)}
+                  <p class="text-white/60 text-[10px] truncate leading-tight">{getCharacterName(item)}</p>
+                {/if}
+                <div class="flex gap-1.5 mt-1.5 justify-end">
+                  <button
+                    class="w-6 h-6 rounded bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+                    onclick={(e) => { e.stopPropagation(); downloadCurrent(item) }}
+                    title={language.download}
+                  >
+                    <Download size={11} />
+                  </button>
+                  <button
+                    class="w-6 h-6 rounded bg-draculared/30 hover:bg-draculared/70 flex items-center justify-center text-white transition-colors"
+                    onclick={(e) => { e.stopPropagation(); deleteAsset(item.id, item.name) }}
+                    title={language.playground.inlayDelete}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          {/each}
+        </div>
+
+        {#if hasMore}
+          <div bind:this={loadMoreSentinel} class="flex items-center justify-center py-10">
+            <div class="w-7 h-7 border-4 border-darkborderc border-t-borderc rounded-full animate-spin"></div>
+          </div>
+        {/if}
+      {/if}
     </div>
   {/if}
-{/if}
+</div>
 
 <!-- Fullscreen viewer -->
 {#if viewerOpen}
@@ -550,7 +593,7 @@
 
       <!-- Status badge at bottom -->
       {#if getStatusLabel(currentViewerItem)}
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-orange-500/80 text-white text-xs font-medium">
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-yellow-500/90 text-black text-xs font-medium">
           {getStatusLabel(currentViewerItem)}
         </div>
       {/if}
@@ -607,7 +650,7 @@
             </button>
             <button
               onclick={() => currentViewerItem && deleteAsset(currentViewerItem.id, currentViewerItem.name)}
-              class="w-full flex items-center gap-2 px-3 py-2 rounded border border-red-500/25 hover:bg-red-500/15 text-red-400 hover:text-red-300 text-sm transition-colors"
+              class="w-full flex items-center gap-2 px-3 py-2 rounded border border-draculared/40 hover:bg-draculared/15 text-red-400 hover:text-red-300 text-sm transition-colors"
             >
               <Trash2 size={14} />
               {language.playground.inlayDelete}

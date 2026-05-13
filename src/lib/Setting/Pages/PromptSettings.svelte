@@ -1,6 +1,7 @@
 <script lang="ts">
     import { ArrowLeft, PlusIcon, TrashIcon } from "@lucide/svelte";
     import { language } from "src/lang";
+    import SettingPage from "src/lib/UI/GUI/SettingPage.svelte";
     import PromptDataItem from "src/lib/UI/PromptDataItem.svelte";
     import { tokenizePreset, type PromptItem } from "src/ts/process/prompt";
     import { templateCheck } from "src/ts/process/templates/templateCheck";
@@ -127,13 +128,6 @@
   })
 </script>
 {#if mode === 'independent'}
-    <h2 class="mb-2 text-2xl font-bold mt-2 items-center flex">
-        <button class="mr-2 text-textcolor2 hover:text-textcolor" onclick={onGoBack}>
-            <ArrowLeft />
-        </button>
-        {language.promptTemplate}
-    </h2>
-
     <div class="flex w-full rounded-md border border-selected">
         <button onclick={() => {
             subMenu = 0
@@ -242,7 +236,7 @@
         {/key}
     </div>
 
-    <button class="font-medium cursor-pointer hover:text-green-500" onclick={() => {
+    <button class="font-medium cursor-pointer hover:text-primary" onclick={() => {
         let value = DBState.db.promptTemplate ?? []
         value.push({
             type: "plain",
@@ -256,8 +250,8 @@
     <span class="text-textcolor2 text-sm mt-2">{tokens} {language.fixedTokens}</span>
     <span class="text-textcolor2 mb-6 text-sm mt-2">{extokens} {language.exactTokens}</span>
 {:else}
-    <span class="text-textcolor mt-4">{language.postEndInnerFormat}</span>
-    <TextInput bind:value={DBState.db.promptSettings.postEndInnerFormat}/>
+    <span class="text-textcolor mt-4">{language.postEndInnerFormat} <Help key="postEndInnerFormat"/></span>
+    <TextInput className="mt-2" bind:value={DBState.db.promptSettings.postEndInnerFormat}/>
 
     <Check bind:check={DBState.db.promptSettings.sendChatAsSystem} name={language.sendChatAsSystem} className="mt-4"/>
     <Check bind:check={DBState.db.promptSettings.sendName} name={language.formatGroupInSingle} className="mt-4"/>
@@ -273,30 +267,30 @@
             <Help unrecommended key='customChainOfThought' />
         </Check>
     {/if}
-    <span class="text-textcolor mt-4">{language.maxThoughtTagDepth}</span>
-    <NumberInput bind:value={DBState.db.promptSettings.maxThoughtTagDepth}/>
+    <span class="text-textcolor mt-4">{language.maxThoughtTagDepth} <Help key="maxThoughtTagDepth"/></span>
+    <NumberInput className="mt-2" bind:value={DBState.db.promptSettings.maxThoughtTagDepth}/>
     <span class="text-textcolor mt-4">{language.customPromptTemplateToggle} <Help key='customPromptTemplateToggle' /></span>
-    <TextAreaInput bind:value={DBState.db.customPromptTemplateToggle}/>
+    <TextAreaInput className="mt-2 mb-4" bind:value={DBState.db.customPromptTemplateToggle}/>
     <span class="text-textcolor mt-4">{language.defaultVariables} <Help key='defaultVariables' /></span>
-    <TextAreaInput bind:value={DBState.db.templateDefaultVariables}/>
-    <span class="text-textcolor mt-4">{language.predictedOutput}</span>
-    <TextAreaInput bind:value={DBState.db.OAIPrediction}/>
+    <TextAreaInput className="mt-2 mb-4" bind:value={DBState.db.templateDefaultVariables}/>
+    <span class="text-textcolor mt-4">{language.predictedOutput} <Help key="predictedOutput"/></span>
+    <TextAreaInput className="mt-2 mb-4" bind:value={DBState.db.OAIPrediction}/>
     <span class="text-textcolor mt-4">{language.autoSuggest} <Help key='autoSuggest' /></span>
-    <TextAreaInput bind:value={DBState.db.autoSuggestPrompt} placeholder={defaultAutoSuggestPrompt}/>
+    <TextAreaInput className="mt-2 mb-4" bind:value={DBState.db.autoSuggestPrompt} placeholder={defaultAutoSuggestPrompt}/>
     <span class="text-textcolor mt-4">{language.groupInnerFormat} <Help key='groupInnerFormat' /></span>
-    <TextAreaInput placeholder={`<{{char}}\'s Message>\n{{slot}}\n</{{char}}\'s Message>`} bind:value={DBState.db.groupTemplate}/>
+    <TextAreaInput className="mt-2 mb-4" placeholder={`<{{char}}\'s Message>\n{{slot}}\n</{{char}}\'s Message>`} bind:value={DBState.db.groupTemplate}/>
     <span class="text-textcolor mt-4">{language.systemContentReplacement} <Help key="systemContentReplacement"/></span>
-    <TextAreaInput bind:value={DBState.db.systemContentReplacement}/>
+    <TextAreaInput className="mt-2 mb-4" bind:value={DBState.db.systemContentReplacement}/>
     <span class="text-textcolor mt-4">{language.systemRoleReplacement} <Help key="systemRoleReplacement"/></span>
-    <SelectInput bind:value={DBState.db.systemRoleReplacement}>
+    <SelectInput className="mt-2 mb-4" bind:value={DBState.db.systemRoleReplacement}>
         <OptionInput value="user">User</OptionInput>
         <OptionInput value="assistant">assistant</OptionInput>
     </SelectInput>
     {#if DBState.db.jsonSchemaEnabled}
         <span class="text-textcolor mt-4">{language.jsonSchema} <Help key='jsonSchema' /></span>
-        <TextAreaInput bind:value={DBState.db.jsonSchema}/>
+        <TextAreaInput className="mt-2 mb-4" bind:value={DBState.db.jsonSchema}/>
         <span class="text-textcolor mt-4">{language.extractJson} <Help key='extractJson' /></span>
-        <TextInput bind:value={DBState.db.extractJson}/>
+        <TextInput className="mt-2" bind:value={DBState.db.extractJson}/>
     {/if}
 
     {#if !DBState.db.auxModelUnderModelSettings}

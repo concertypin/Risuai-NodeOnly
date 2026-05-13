@@ -2,7 +2,7 @@ import { get, writable } from "svelte/store";
 import { getDatabase, setDatabase } from "../storage/database.svelte";
 import { downloadFile } from "../globalApi.svelte";
 import { BufferToText, selectSingleFile } from "../util";
-import { alertError } from "../alert";
+import { notifyError } from "../alert";
 import { isLite } from "../lite";
 import { CustomCSSStore, SafeModeStore } from "../stores.svelte";
 
@@ -16,6 +16,7 @@ export interface ColorScheme{
     textcolor2: string;
     darkBorderc: string;
     darkbutton: string;
+    primary: string;
     type:'light'|'dark';
 }
 
@@ -30,6 +31,7 @@ export const defaultColorScheme: ColorScheme = {
     textcolor2: "#64748b",
     darkBorderc: "#4b5563",
     darkbutton: "#374151",
+    primary: "#3b82f6",
     type:'dark'
 }
 
@@ -45,6 +47,7 @@ const colorShemes = {
         textcolor2: "#a3a3a3",
         darkBorderc: "#404040",
         darkbutton: "#2e2e2e",
+        primary: "#3b82f6",
         type:'dark'
     },
     "light": {
@@ -57,6 +60,7 @@ const colorShemes = {
         textcolor2: "#64748b",
         darkBorderc: "#d1d5db",
         darkbutton: "#e5e7eb",
+        primary: "#2563eb",
         type:'light'
     },
     "cherry": {
@@ -69,6 +73,7 @@ const colorShemes = {
         textcolor2: "#fca5a5",
         darkBorderc: "#92400e",
         darkbutton: "#b45309",
+        primary: "#fb923c",
         type:'dark'
     },
     "galaxy": {
@@ -81,6 +86,7 @@ const colorShemes = {
         textcolor2: "#8be9fd",
         darkBorderc: "#457b9d",
         darkbutton: "#1f2a48",
+        primary: "#a78bfa",
         type:'dark'
     },
     "nature": {
@@ -93,6 +99,7 @@ const colorShemes = {
         textcolor2: "#4d908e",
         darkBorderc: "#457b9d",
         darkbutton: "#2d6a4f",
+        primary: "#52b788",
         type:'dark'
     },
     "realblack": {
@@ -105,6 +112,7 @@ const colorShemes = {
         textcolor2: "#64748b",
         darkBorderc: "#4b5563",
         darkbutton: "#374151",
+        primary: "#3b82f6",
         type:'dark'
     },
     "monokai-light": {
@@ -117,6 +125,7 @@ const colorShemes = {
         textcolor2: "#75715e",
         darkBorderc: "#c0c0b8",
         darkbutton: "#d0d0c8",
+        primary: "#f92672",
         type:'light'
     },
     "monokai-black": {
@@ -129,6 +138,7 @@ const colorShemes = {
         textcolor2: "#a6a68a",
         darkBorderc: "#3e3d32",
         darkbutton: "#3e3d32",
+        primary: "#f92672",
         type:'dark'
     },
     "lite": {
@@ -141,6 +151,7 @@ const colorShemes = {
         textcolor2: "#64748b",
         darkBorderc: "#030712",
         darkbutton: "#374151",
+        primary: "#3b82f6",
         type:'dark'
     }
 
@@ -185,6 +196,9 @@ export function updateColorScheme(){
         document.documentElement.style.setProperty("--risu-theme-textcolor2", colorScheme.textcolor2);
         document.documentElement.style.setProperty("--risu-theme-darkborderc", colorScheme.darkBorderc);
         document.documentElement.style.setProperty("--risu-theme-darkbutton", colorScheme.darkbutton);
+        // Legacy data may lack `primary` (added later); fall back to default so
+        // the toggle/CTA fill stays usable until the user picks a custom value.
+        document.documentElement.style.setProperty("--risu-theme-primary", colorScheme.primary ?? defaultColorScheme.primary);
         ColorSchemeTypeStore.set(colorScheme.type)
     } catch (error) {}
 }
@@ -225,8 +239,13 @@ export async function importColorScheme(){
             typeof colorScheme.darkbutton !== 'string' ||
             typeof colorScheme.type !== 'string'
         ){
-            alertError('Invalid color scheme')
+            notifyError('Invalid color scheme')
             return
+        }
+        // `primary` is optional in old export files (pre-primary-token migration).
+        // Backfill from the default so a re-export round-trips with the field set.
+        if(typeof colorScheme.primary !== 'string'){
+            colorScheme.primary = defaultColorScheme.primary
         }
         changeColorScheme('custom')
         let db = getDatabase()
@@ -234,7 +253,7 @@ export async function importColorScheme(){
         updateColorScheme()
     }
     catch(e){
-        alertError('Invalid color scheme')
+        notifyError('Invalid color scheme')
         return
     
     }

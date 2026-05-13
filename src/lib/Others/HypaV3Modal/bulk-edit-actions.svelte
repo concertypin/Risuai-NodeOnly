@@ -3,6 +3,8 @@
   import { DBState, selectedCharID } from "src/ts/stores.svelte";
   import type { BulkEditState, Category } from "./types";
   import { language } from "src/lang";
+  import ShSelect from "src/lib/UI/GUI/ShSelect.svelte";
+  import OptionInput from "src/lib/UI/GUI/OptionInput.svelte";
 
   interface Props {
     bulkEditState: BulkEditState;
@@ -79,8 +81,8 @@
       <div class="flex items-center gap-2">
         <!-- Resummarize Button -->
         <button
-          class="px-4 py-2 rounded text-sm font-medium transition-colors {bulkEditState.selectedSummaries.size > 1 
-            ? 'bg-green-600 hover:bg-blue-700 text-white' 
+          class="px-4 py-2 rounded text-sm font-medium transition-colors {bulkEditState.selectedSummaries.size > 1
+            ? 'bg-primary hover:bg-primary/90 text-white'
             : 'bg-zinc-600 text-zinc-400 cursor-not-allowed'}"
           onclick={onResummarize}
           disabled={bulkEditState.selectedSummaries.size < 2}
@@ -92,20 +94,19 @@
       <!-- Right Side: Category, Important, Bulk Select, Clear -->
       <div class="flex items-center gap-2">
         <!-- Category Selection -->
-        <select
-          class="px-3 py-2 rounded-sm border border-zinc-600 bg-zinc-900 text-zinc-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+        <ShSelect
           value={bulkEditState.selectedCategory}
           onchange={handleCategoryChange}
         >
           {#each categories as category}
-            <option value={category.id}>{category.name}</option>
+            <OptionInput value={category.id}>{category.name}</OptionInput>
           {/each}
-        </select>
+        </ShSelect>
 
         <!-- Apply Category Button -->
         <button
           class="px-4 py-2 rounded text-sm font-medium transition-colors {bulkEditState.selectedSummaries.size > 0
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+            ? 'bg-primary hover:bg-primary/90 text-white'
             : 'bg-zinc-600 text-zinc-400 cursor-not-allowed'}"
           onclick={applyCategoryToSelected}
           disabled={bulkEditState.selectedSummaries.size === 0}
@@ -129,7 +130,7 @@
             value={bulkEditState.bulkSelectInput}
             oninput={handleBulkSelectInputChange}
             placeholder="1,3,5-8"
-            class="w-32 px-3 py-2 text-sm bg-zinc-800 border border-zinc-600 rounded-sm text-zinc-300 placeholder-zinc-500 focus:border-blue-500 outline-hidden"
+            class="w-32 px-3 py-2 text-sm bg-zinc-800 border border-zinc-600 rounded-sm text-zinc-300 placeholder-zinc-500 focus:border-borderc outline-hidden"
             onkeydown={handleBulkSelectKeydown}
           />
           <button

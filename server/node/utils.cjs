@@ -1,5 +1,6 @@
 const { Packr, Unpackr, decode } = require('msgpackr');
 const fflate = require('fflate');
+const { logger } = require('./logs.cjs');
 
 // Magic headers for different save formats
 const magicHeader = new Uint8Array([0, 82, 73, 83, 85, 83, 65, 86, 69, 0, 7]);
@@ -282,7 +283,7 @@ class RisuSaveDecoder {
                     }
                 }
             } catch (error) {
-                console.error(`[RisuSaveDecoder] Error processing block ${this.blocks[key].name}:`, error);
+                logger.error(`[RisuSaveDecoder] Error processing block ${this.blocks[key].name}:`, error);
                 if (this.blocks[key].type === RisuSaveType.ROOT) {
                     throw new Error('Failed to decode root block, cannot proceed with decoding RisuSave data');
                 }
@@ -333,7 +334,7 @@ async function decodeRisuSave(data) {
         }
         return unpackr.decode(data);
     } catch (error) {
-        console.error('Error decoding RisuSave data:', error);
+        logger.error('Error decoding RisuSave data:', error);
         try {
             const risuSaveHeader = new Uint8Array(Buffer.from("\u0000\u0000RISU", 'utf-8'));
             const realData = data.subarray(risuSaveHeader.length);

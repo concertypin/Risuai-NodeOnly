@@ -21,9 +21,11 @@ export const SizeStore = writable({
 })
 
 export const loadedStore = writable(false)
+export const isTouchDevice = writable(typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches)
 export const DynamicGUI = writable(false)
 export const sideBarClosing = writable(false)
 export const sideBarStore = writable(window.innerWidth > 1024)
+export const leftBarCollapsed = writable(false)
 export const selectedCharID = writable(-1)
 export const chatDeselected = writable(false)
 export const CurrentTriggerIdStore = writable<string | null>(null)
@@ -43,6 +45,22 @@ export const MobileGUI = writable(false)
 export const MobileGUIStack = writable(0)
 export const MobileSideBar = writable(0)
 export const SettingsMenuIndex = writable(-1)
+// Boot-time backup reminder prompt — set by bootstrap and rendered by
+// BootBackupPrompt. The component resolves the user's choice (proceed/skip)
+// back via the resolve callback. See src/ts/bootstrap.ts.
+export interface BootBackupPromptData {
+    estimate: number | null
+    free: number | null
+    total: number | null
+    insufficient: boolean
+    resolve: (proceed: boolean) => void
+}
+export const bootBackupPromptStore = writable<BootBackupPromptData | null>(null)
+
+// Sub-tab index inside the System settings page. Exposed as a store so
+// other pages can deep-link via openSettings(SettingsRoute.System,
+// SystemTab.X) — see src/ts/routing.
+export const SystemSubmenuIndex = writable(0)
 export const ReloadGUIPointer = writable(0)
 export const ReloadChatPointer = writable({} as Record<number, number>)
 export const ScrollToMessageStore = $state({ value: -1 })
@@ -54,12 +72,14 @@ export const CustomCSSStore = writable('')
 export const SafeModeStore = writable(false)
 export const MobileSearch = writable('')
 export const CharConfigSubMenu = writable(0)
-export const CustomGUISettingMenuStore = writable(false)
 export const alertStore = writable({
     type: 'none',
     msg: 'n',
 } as alertData)
 export const hypaV3ModalOpen = writable(false)
+// Toggle preset selector lives outside alertStore so child alertConfirm /
+// alertInput overlays can layer on top of it without overwriting state.
+export const togglePresetsOpenStore = writable(false)
 export const hypaV3ProgressStore = writable({
     open: false,
     miniMsg: '',
@@ -169,7 +189,8 @@ export const loadoutModalStore = $state({
 export const popUpEditorStore = $state({
     open: false,
     value: '',
-    mode: 'default' as 'default'
+    mode: 'default' as 'default',
+    language: 'markdown' as string
 })
 
 //Set might be more ideal, however since Svelte doesn't support reactive Sets, using array for now

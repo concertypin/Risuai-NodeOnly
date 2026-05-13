@@ -36,8 +36,8 @@
     {#if item.helpKey}<Help key={item.helpKey as any}/>{/if}
 </span>
 <NumberInput
+    className="mt-2"
     marginBottom={true}
-    size="sm"
     min={item.options?.min}
     max={item.options?.max}
     bind:value={localValue}

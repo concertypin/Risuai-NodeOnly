@@ -7,7 +7,7 @@ import {
     type TranslatorPreset,
 } from "./presets";
 import { globalFetch } from "../globalApi.svelte"
-import { alertError } from "../alert"
+import { notifyError } from "../alert"
 import { requestChatData } from "../process/request/request"
 import { doingChat, type OpenAIChat } from "../process/index.svelte"
 import { applyMarkdownToNode, type simpleCharacterArgument } from "../parser/parser.svelte"
@@ -111,7 +111,7 @@ export async function runTranslator(text:string, reverse:boolean, from:string,ta
             const result = await translateMain(trimed, arg);
 
             if(result.startsWith('ERR::')){
-                alertError(result)
+                notifyError(result)
                 return text
             }
 
@@ -579,11 +579,11 @@ async function translateLLM(text:string, arg:{to:string, from:string, regenerate
     }, 'translate')
 
     if(rq.type === 'fail'){
-        alertError(rq.result)
+        notifyError(rq.result)
         return text
     }
     if(rq.type === 'streaming' || rq.type === 'multiline'){
-        alertError('Unexpected response type')
+        notifyError('Unexpected response type')
         return text
     }
     const result = rq.result.replace(/<style-data style-index="(\d+)" ?\/?>/g, (match, p1) => {

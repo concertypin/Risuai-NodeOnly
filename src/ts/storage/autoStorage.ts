@@ -1,4 +1,4 @@
-import { NodeStorage } from "./nodeStorage"
+import { NodeStorage, type PatchItemResult } from "./nodeStorage"
 
 export class AutoStorage{
     isAccount:boolean = false
@@ -38,9 +38,9 @@ export class AutoStorage{
         return this.realStorage.createAuth()
     }
 
-    async exportBackup() {
+    async exportBackup(opts?: { target?: 'upstream' }) {
         await this.Init()
-        return this.realStorage.exportBackup()
+        return this.realStorage.exportBackup(opts)
     }
 
     async importBackup(file: Blob, onProgress?: (loaded: number, total: number) => void) {
@@ -48,7 +48,7 @@ export class AutoStorage{
         return this.realStorage.importBackup(file, onProgress)
     }
 
-    async patchItem(key: string, patchData: { patch: any[], expectedHash: string }): Promise<{success: boolean, etag?: string}> {
+    async patchItem(key: string, patchData: { patch: any[], expectedHash: string }): Promise<PatchItemResult> {
         return await this.realStorage.patchItem(key, patchData)
     }
 

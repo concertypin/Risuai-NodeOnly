@@ -46,7 +46,7 @@
     let {
         min = undefined,
         max = undefined,
-        size = 'sm',
+        size = 'md',
         value = $bindable(),
         id = undefined,
         padding = true,

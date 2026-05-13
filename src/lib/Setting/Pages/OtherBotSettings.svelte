@@ -1,5 +1,7 @@
 <script lang="ts">
     import Check from "src/lib/UI/GUI/CheckInput.svelte";
+    import SettingPage from "src/lib/UI/GUI/SettingPage.svelte";
+    import SettingTabs from "src/lib/UI/GUI/SettingTabs.svelte";
     import { language } from "src/lang";
     import Help from "src/lib/Others/Help.svelte";
     import { selectSingleFile } from "src/ts/util";
@@ -18,10 +20,10 @@
     import { tokenizePreset } from "src/ts/process/prompt";
     import { getCharToken } from "src/ts/tokenizer";
     import { PlusIcon, PencilIcon, TrashIcon, DownloadIcon, HardDriveUploadIcon } from "@lucide/svelte";
-    import { alertError, alertInput, alertConfirm, alertNormal } from "src/ts/alert";
+    import { alertError, alertInput, alertConfirm, notifySuccess, notifyError } from "src/ts/alert";
     import { createHypaV3Preset } from "src/ts/process/memory/hypav3";
 
-    let submenu = $state(DBState.db.useLegacyGUI ? -1 : 0);
+    let submenu = $state(0);
 
     // HypaV3
     $effect(() => {
@@ -104,7 +106,7 @@
      */
     async function fetchWavespeedModels() {
         if (!DBState.db.wavespeedImage.key || DBState.db.wavespeedImage.key.trim() === '') {
-            alertError('WaveSpeed API Key not set');
+            notifyError('WaveSpeed API Key not set');
             return [];
         }
 
@@ -118,7 +120,7 @@
             });
 
             if (!result.ok || !result.data) {
-                alertError('Failed to fetch WaveSpeed models');
+                notifyError('Failed to fetch WaveSpeed models');
                 return;
             }
 
@@ -126,12 +128,12 @@
             try {
                 responseData = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
             } catch (e) {
-                alertError('Failed to parse WaveSpeed response');
+                notifyError('Failed to parse WaveSpeed response');
                 return;
             }
 
             if (responseData.code !== 200 || !Array.isArray(responseData.data)) {
-                alertError('Invalid WaveSpeed API response');
+                notifyError('Invalid WaveSpeed API response');
                 return;
             }
 
@@ -158,9 +160,9 @@
               .sort((a, b) => a.name.localeCompare(b.model_id));
 
             wavespeedModels = filteredModels;
-            alertNormal(`Successfully loaded ${filteredModels.length} models`);
+            notifySuccess(`Successfully loaded ${filteredModels.length} models`);
         } catch (error) {
-            alertError(`Failed to fetch models: ${error}`);
+            notifyError(`Failed to fetch models: ${error}`);
         } finally {
             isWavespeedLoading = false;
         }
@@ -221,36 +223,16 @@
     });
     // End wavespeed
 </script>
-<h2 class="mb-2 text-2xl font-bold mt-2">{language.otherBots}</h2>
+<SettingPage title={language.otherBots}>
+<SettingTabs tabs={[
+    { label: language.longTermMemory, value: 0 },
+    { label: 'TTS', value: 1 },
+    { label: language.emotionImage, value: 2 },
+    { label: language.imageGeneration, value: 3 },
+]} bind:selected={submenu} />
 
-
-{#if submenu !== -1}
-    <div class="flex w-full rounded-md border border-darkborderc mb-4">
-        <button onclick={() => {
-            submenu = 0
-        }} class="p-2 flex-1 border-r border-darkborderc" class:bg-darkbutton={submenu === 0}>
-            <span>{language.longTermMemory}</span>
-        </button>
-        <button onclick={() => {
-            submenu = 1
-        }} class="p2 flex-1 border-r border-darkborderc" class:bg-darkbutton={submenu === 1}>
-            <span>TTS</span>
-        </button>
-        <button onclick={() => {
-            submenu = 2
-        }} class="p-2 flex-1 border-r border-darkborderc" class:bg-darkbutton={submenu === 2}>
-            <span>{language.emotionImage}</span>
-        </button>
-        <button onclick={() => {
-            submenu = 3
-        }} class="p-2 flex-1" class:bg-darkbutton={submenu === 3}>
-            <span>{language.imageGeneration}</span>
-        </button>
-    </div>
-{/if}
-
-{#if submenu === 3 || submenu === -1}
-    <Accordion name={language.imageGeneration} styled disabled={submenu !== -1}>
+{#if submenu === 3}
+    <Accordion name={language.imageGeneration} styled disabled>
         <span class="text-textcolor mt-2">{language.imageGeneration} {language.provider} <Help key="sdProvider"/></span>
         <SelectInput className="mt-2 mb-4" bind:value={DBState.db.sdProvider}>
             <OptionInput value="" >None</OptionInput>
@@ -273,42 +255,43 @@
         {#if DBState.db.sdProvider === 'webui'}
         <span class="text-draculared text-xs mb-2">You must use WebUI with --api flag</span>
             <span class="text-draculared text-xs mb-2">You must use WebUI without agpl license or use unmodified version with agpl license to observe the contents of the agpl license.</span>
-            <span class="text-textcolor mt-2">WebUI {language.providerURL}</span>
-            <TextInput size="sm" marginBottom placeholder="https://..." bind:value={DBState.db.webUiUrl}/>
-            <span class="text-textcolor">Steps</span>
-            <NumberInput size="sm" marginBottom min={0} max={100} bind:value={DBState.db.sdSteps}/>
+            <span class="text-textcolor mt-2">WebUI {language.providerURL} <Help key="webuiUrl"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="https://..." bind:value={DBState.db.webUiUrl}/>
+            <span class="text-textcolor">Steps <Help key="webuiSteps"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={100} bind:value={DBState.db.sdSteps}/>
 
-            <span class="text-textcolor">CFG Scale</span>
-            <NumberInput size="sm" marginBottom min={0} max={20} bind:value={DBState.db.sdCFG}/>
+            <span class="text-textcolor">CFG Scale <Help key="webuiCFG"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={20} bind:value={DBState.db.sdCFG}/>
 
-            <span class="text-textcolor">Width</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.width}/>
-            <span class="text-textcolor">Height</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.height}/>
-            <span class="text-textcolor">Sampler</span>
-            <TextInput size="sm" marginBottom bind:value={DBState.db.sdConfig.sampler_name}/>
+            <span class="text-textcolor">Width <Help key="webuiWidth"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.width}/>
+            <span class="text-textcolor">Height <Help key="webuiHeight"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.height}/>
+            <span class="text-textcolor">Sampler <Help key="webuiSampler"/></span>
+            <TextInput className="mt-2" marginBottom bind:value={DBState.db.sdConfig.sampler_name}/>
 
             <div class="flex items-center mt-2">
                 <Check bind:check={DBState.db.sdConfig.enable_hr} name='Enable Hires'/>
+                <Help key="webuiEnableHr"/>
             </div>
             {#if DBState.db.sdConfig.enable_hr === true}
-                <span class="text-textcolor">denoising_strength</span>
-                <NumberInput size="sm" marginBottom  min={0} max={10} bind:value={DBState.db.sdConfig.denoising_strength}/>
-                <span class="text-textcolor">hr_scale</span>
-                <NumberInput size="sm" marginBottom  min={0} max={10} bind:value={DBState.db.sdConfig.hr_scale}/>
-                <span class="text-textcolor">Upscaler</span>
-                <TextInput size="sm" marginBottom bind:value={DBState.db.sdConfig.hr_upscaler}/>
+                <span class="text-textcolor">denoising_strength <Help key="webuiDenoising"/></span>
+                <NumberInput className="mt-2" marginBottom min={0} max={10} bind:value={DBState.db.sdConfig.denoising_strength}/>
+                <span class="text-textcolor">hr_scale <Help key="webuiHrScale"/></span>
+                <NumberInput className="mt-2" marginBottom min={0} max={10} bind:value={DBState.db.sdConfig.hr_scale}/>
+                <span class="text-textcolor">Upscaler <Help key="webuiUpscaler"/></span>
+                <TextInput className="mt-2" marginBottom bind:value={DBState.db.sdConfig.hr_upscaler}/>
             {/if}
         {/if}
 
         {#if DBState.db.sdProvider === 'novelai'}
-            <span class="text-textcolor mt-2">Novel AI {language.providerURL}</span>
-            <TextInput size="sm" marginBottom placeholder="https://image.novelai.net" bind:value={DBState.db.NAIImgUrl}/>
-            <span class="text-textcolor">API Key</span>
-            <TextInput size="sm" marginBottom placeholder="pst-..." bind:value={DBState.db.NAIApiKey}/>
+            <span class="text-textcolor mt-2">Novel AI {language.providerURL} <Help key="naiImgUrl"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="https://image.novelai.net" bind:value={DBState.db.NAIImgUrl}/>
+            <span class="text-textcolor">API Key <Help key="naiImgKey"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="pst-..." bind:value={DBState.db.NAIApiKey}/>
 
-            <span class="text-textcolor">Model</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.NAIImgModel} >
+            <span class="text-textcolor">Model <Help key="naiModel"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.NAIImgModel} >
                 <OptionInput value="nai-diffusion-4-5-full" >nai-diffusion-4-5-full</OptionInput>
                 <OptionInput value="nai-diffusion-4-5-curated" >nai-diffusion-4-5-curated</OptionInput>
                 <OptionInput value="nai-diffusion-4-full" >nai-diffusion-4-full</OptionInput>
@@ -319,17 +302,17 @@
 
             </SelectInput>
 
-            <span class="text-textcolor">Width</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.width}/>
-            <span class="text-textcolor">Height</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.height}/>
-            <span class="text-textcolor">Sampler</span>
+            <span class="text-textcolor">Width <Help key="naiWidth"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.width}/>
+            <span class="text-textcolor">Height <Help key="naiHeight"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.height}/>
+            <span class="text-textcolor">Sampler <Help key="naiSampler"/></span>
 
             {#if DBState.db.NAIImgModel === 'nai-diffusion-4-full'
             || DBState.db.NAIImgModel === 'nai-diffusion-4-curated-preview'
             || DBState.db.NAIImgModel === 'nai-diffusion-4-5-full'
             || DBState.db.NAIImgModel === 'nai-diffusion-4-5-curated'}
-                <SelectInput className="mb-4" bind:value={DBState.db.NAIImgConfig.sampler}>
+                <SelectInput className="mt-2 mb-4" bind:value={DBState.db.NAIImgConfig.sampler}>
                     <OptionInput value="k_euler_ancestral" >Euler Ancestral</OptionInput>
                     <OptionInput value="k_dpmpp_2s_ancestral" >DPM++ 2S Ancestral</OptionInput>
                     <OptionInput value="k_dpmpp_2m_sde" >DPM++ 2M SDE</OptionInput>
@@ -338,7 +321,7 @@
                     <OptionInput value="k_dpmpp_sde" >DPM++ SDE</OptionInput>
                 </SelectInput>
             {:else}
-                <SelectInput className="mb-4" bind:value={DBState.db.NAIImgConfig.sampler}>
+                <SelectInput className="mt-2 mb-4" bind:value={DBState.db.NAIImgConfig.sampler}>
                     <OptionInput value="k_euler_ancestral" >Euler Ancestral</OptionInput>
                     <OptionInput value="k_dpmpp_2s_ancestral" >DPM++ 2S Ancestral</OptionInput>
                     <OptionInput value="k_dpmpp_sde" >DPM++ SDE</OptionInput>
@@ -349,23 +332,23 @@
                 </SelectInput>
             {/if}
 
-            <span class="text-textcolor">Noise Schedule</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.NAIImgConfig.noise_schedule}>
+            <span class="text-textcolor">Noise Schedule <Help key="naiNoiseSchedule"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.NAIImgConfig.noise_schedule}>
                 <OptionInput value="native" >native</OptionInput>
                 <OptionInput value="karras" >karras</OptionInput>
                 <OptionInput value="exponential" >exponential</OptionInput>
                 <OptionInput value="polyexponential" >polyexponential</OptionInput>
             </SelectInput>
 
-            <span class="text-textcolor">steps</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.steps}/>
-            <span class="text-textcolor">CFG scale</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.scale}/>
-            <span class="text-textcolor">CFG rescale</span>
-            <NumberInput size="sm" marginBottom min={0} max={1} bind:value={DBState.db.NAIImgConfig.cfg_rescale}/>
+            <span class="text-textcolor">steps <Help key="naiSteps"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.steps}/>
+            <span class="text-textcolor">CFG scale <Help key="naiCFG"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.NAIImgConfig.scale}/>
+            <span class="text-textcolor">CFG rescale <Help key="naiCFGRescale"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={1} bind:value={DBState.db.NAIImgConfig.cfg_rescale}/>
 
-            <span class="text-textcolor">Image Reference</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.NAIImgConfig.reference_mode}>
+            <span class="text-textcolor">Image Reference <Help key="naiImageReference"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.NAIImgConfig.reference_mode}>
                 <OptionInput value="" >None</OptionInput>
                 <OptionInput value="vibe" >Vibe Trasfer</OptionInput>
                 {#if DBState.db.NAIImgModel === 'nai-diffusion-4-5-full' || DBState.db.NAIImgModel === 'nai-diffusion-4-5-curated'}
@@ -426,11 +409,11 @@
                     }
                 }}>
                     {#if !DBState.db.NAIImgConfig.vibe_data || !DBState.db.NAIImgConfig.vibe_data.thumbnail}
-                        <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                        <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                             <span class="text-sm">Upload<br />Vibe</span>
                         </div>
                     {:else}
-                        <img src={DBState.db.NAIImgConfig.vibe_data.thumbnail} alt="Vibe Preview" class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500" />
+                        <img src={DBState.db.NAIImgConfig.vibe_data.thumbnail} alt="Vibe Preview" class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary" />
                     {/if}
                 </button>
 
@@ -450,8 +433,8 @@
 
                 {#if DBState.db.NAIImgConfig.vibe_data}
 
-                    <span class="text-textcolor">Vibe Model</span>
-                    <SelectInput className="mb-2" bind:value={DBState.db.NAIImgConfig.vibe_model_selection} onchange={(e) => {
+                    <span class="text-textcolor">Vibe Model <Help key="naiVibeModel"/></span>
+                    <SelectInput className="mt-2 mb-2" bind:value={DBState.db.NAIImgConfig.vibe_model_selection} onchange={(e) => {
                         // When vibe model changes, set InfoExtracted to the first value
                         if (DBState.db.NAIImgConfig.vibe_data?.encodings &&
                             DBState.db.NAIImgConfig.vibe_model_selection &&
@@ -477,8 +460,8 @@
                         {/if}
                     </SelectInput>
 
-                    <span class="text-textcolor">Information Extracted</span>
-                    <SelectInput className="mb-2" bind:value={DBState.db.NAIImgConfig.InfoExtracted}>
+                    <span class="text-textcolor">Information Extracted <Help key="naiInfoExtracted"/></span>
+                    <SelectInput className="mt-2 mb-2" bind:value={DBState.db.NAIImgConfig.InfoExtracted}>
                         {#if DBState.db.NAIImgConfig.vibe_model_selection && DBState.db.NAIImgConfig.vibe_data.encodings[DBState.db.NAIImgConfig.vibe_model_selection]}
                             {#each Object.entries(DBState.db.NAIImgConfig.vibe_data.encodings[DBState.db.NAIImgConfig.vibe_model_selection]) as [key, value]}
                                 <OptionInput value={value.params.information_extracted}>{value.params.information_extracted}</OptionInput>
@@ -486,8 +469,8 @@
                         {/if}
                     </SelectInput>
 
-                    <span class="text-textcolor">Reference Strength Multiple</span>
-                    <SliderInput marginBottom min={0} max={1} step={0.1} fixed={2} bind:value={DBState.db.NAIImgConfig.reference_strength_multiple[0]} />
+                    <span class="text-textcolor">Reference Strength Multiple <Help key="naiRefStrength"/></span>
+                    <SliderInput className="mt-2" marginBottom min={0} max={1} step={0.1} fixed={2} bind:value={DBState.db.NAIImgConfig.reference_strength_multiple[0]} />
                 {/if}
             {/if}
 
@@ -514,16 +497,16 @@
                         console.log('Character image set:', DBState.db.NAIImgConfig.character_image)
                     }}>
                         {#if !DBState.db.NAIImgConfig.character_image || DBState.db.NAIImgConfig.character_image === ''}
-                            <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                            <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                                 <span class="text-sm">Upload<br />Image</span>
                             </div>
                         {:else}
                             {#await getCharImage(DBState.db.NAIImgConfig.character_image, 'plain')}
-                                <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                                <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                                     <span class="text-sm">Uploading<br />Image..</span>
                                 </div>
                             {:then im}
-                                <img src={im} class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500" alt="Base Preview"/>
+                                <img src={im} class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary" alt="Base Preview"/>
                             {/await}
                         {/if}
                     </button>
@@ -543,38 +526,59 @@
                 
                 <span class="text-textcolor2 text-xs mb-2 block">Leave blank to use the character's default image.</span>
 
-                <Check className="mb-4" bind:check={DBState.db.NAIImgConfig.style_aware} name="Style Aware"/>
+                <div class="flex items-center mb-4">
+                    <Check bind:check={DBState.db.NAIImgConfig.style_aware} name="Style Aware"/>
+                    <Help key="naiStyleAware"/>
+                </div>
 
             {/if}
 
-            
-            
+
+
 
             {#if (DBState.db.NAIImgModel === 'nai-diffusion-3' || DBState.db.NAIImgModel === 'nai-diffusion-furry-3' || DBState.db.NAIImgModel === 'nai-diffusion-2')
             && DBState.db.NAIImgConfig.sampler !== 'ddim_v3'}
-                <Check bind:check={DBState.db.NAIImgConfig.sm} name="Use SMEA"/>
+                <div class="flex items-center mb-2">
+                    <Check bind:check={DBState.db.NAIImgConfig.sm} name="Use SMEA"/>
+                    <Help key="naiUseSMEA"/>
+                </div>
             {/if}
 
             {#if DBState.db.NAIImgModel === 'nai-diffusion-3' && DBState.db.NAIImgConfig.sampler !== 'ddim_v3'}
-                <Check bind:check={DBState.db.NAIImgConfig.sm_dyn} name='Use DYN'/>
+                <div class="flex items-center mb-2">
+                    <Check bind:check={DBState.db.NAIImgConfig.sm_dyn} name='Use DYN'/>
+                    <Help key="naiUseDYN"/>
+                </div>
             {/if}
 
-            {#if DBState.db.NAIImgModel === 'nai-diffusion-4-5-full' || DBState.db.NAIImgModel === 'nai-diffusion-4-5-curated' 
+            {#if DBState.db.NAIImgModel === 'nai-diffusion-4-5-full' || DBState.db.NAIImgModel === 'nai-diffusion-4-5-curated'
             || DBState.db.NAIImgModel === 'nai-diffusion-4-full' || DBState.db.NAIImgModel === 'nai-diffusion-4-curated-preview'
             || DBState.db.NAIImgModel === 'nai-diffusion-3' || DBState.db.NAIImgModel === 'nai-diffusion-furry-3'}
-                <Check bind:check={DBState.db.NAIImgConfig.variety_plus} name="Variety+"/>
+                <div class="flex items-center mb-2">
+                    <Check bind:check={DBState.db.NAIImgConfig.variety_plus} name="Variety+"/>
+                    <Help key="naiVarietyPlus"/>
+                </div>
             {/if}
 
             {#if DBState.db.NAIImgModel === 'nai-diffusion-3' || DBState.db.NAIImgModel === 'nai-diffusion-furry-3' || DBState.db.NAIImgModel === 'nai-diffusion-2'}
-                <Check bind:check={DBState.db.NAIImgConfig.decrisp} name="Decrisp"/>
+                <div class="flex items-center mb-2">
+                    <Check bind:check={DBState.db.NAIImgConfig.decrisp} name="Decrisp"/>
+                    <Help key="naiDecrisp"/>
+                </div>
             {/if}
 
             {#if DBState.db.NAIImgModel === 'nai-diffusion-4-full'
             || DBState.db.NAIImgModel === 'nai-diffusion-4-curated-preview'}
-                <Check bind:check={DBState.db.NAIImgConfig.legacy_uc} name='Use legacy uc'/>
+                <div class="flex items-center mb-2">
+                    <Check bind:check={DBState.db.NAIImgConfig.legacy_uc} name='Use legacy uc'/>
+                    <Help key="naiLegacyUC"/>
+                </div>
             {/if}
-                
-            <Check className="mt-4 mb-4" bind:check={DBState.db.NAII2I} name="Enable I2I"/>
+
+            <div class="flex items-center mt-4 mb-4">
+                <Check bind:check={DBState.db.NAII2I} name="Enable I2I"/>
+                <Help key="naiEnableI2I"/>
+            </div>
             
             {#if DBState.db.NAII2I}
                 <div class="relative">
@@ -593,16 +597,16 @@
                         DBState.db.NAIImgConfig.image = saveId
                     }}>
                         {#if !DBState.db.NAIImgConfig.image || DBState.db.NAIImgConfig.image === ''}
-                            <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                            <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                                 <span class="text-sm">Upload<br />Image</span>
                             </div>
                         {:else}
                             {#await getCharImage(DBState.db.NAIImgConfig.image, 'plain')}
-                                <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                                <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                                     <span class="text-sm">Uploading<br />Image..</span>
                                 </div>
                             {:then im}
-                                <img src={im} class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500" alt="Base Preview"/>
+                                <img src={im} class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary" alt="Base Preview"/>
                             {/await}
                         {/if}
                     </button>
@@ -623,9 +627,9 @@
 
 
                 <span class="text-textcolor mt-2">Strength</span>
-                <SliderInput min={0} max={0.99} step={0.01} fixed={2} bind:value={DBState.db.NAIImgConfig.strength}/>
+                <SliderInput className="mt-2" min={0} max={0.99} step={0.01} fixed={2} bind:value={DBState.db.NAIImgConfig.strength}/>
                 <span class="text-textcolor mt-2">Noise</span>
-                <SliderInput min={0} max={0.99} step={0.01} fixed={2} bind:value={DBState.db.NAIImgConfig.noise}/>
+                <SliderInput className="mt-2" min={0} max={0.99} step={0.01} fixed={2} bind:value={DBState.db.NAIImgConfig.noise}/>
 
 
             {/if}
@@ -634,10 +638,10 @@
          
         
         {#if DBState.db.sdProvider === 'dalle'}
-            <span class="text-textcolor">OpenAI API Key</span>
-            <TextInput size="sm" marginBottom placeholder="sk-..." bind:value={DBState.db.openAIKey}/>
+            <span class="text-textcolor">OpenAI API Key <Help key="dalleKey"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="sk-..." bind:value={DBState.db.openAIKey}/>
 
-            <span class="text-textcolor mt-4">Dall-E Quality</span>
+            <span class="text-textcolor mt-4">Dall-E Quality <Help key="dalleQuality"/></span>
             <SelectInput className="mt-2 mb-4" bind:value={DBState.db.dallEQuality}>
                 <OptionInput value="standard" >Standard</OptionInput>
                 <OptionInput value="hd" >HD</OptionInput>
@@ -646,10 +650,10 @@
         {/if}
 
         {#if DBState.db.sdProvider === 'stability'}
-            <span class="text-textcolor">Stability API Key</span>
-            <TextInput size="sm" marginBottom placeholder="..." bind:value={DBState.db.stabilityKey}/>
+            <span class="text-textcolor">Stability API Key <Help key="stabilityKey"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="..." bind:value={DBState.db.stabilityKey}/>
 
-            <span class="text-textcolor">Stability Model</span>
+            <span class="text-textcolor">Stability Model <Help key="stabilityModel"/></span>
             <SelectInput className="mt-2 mb-4" bind:value={DBState.db.stabilityModel}>
                 <OptionInput value="ultra" >SD Ultra</OptionInput>
                 <OptionInput value="core" >SD Core</OptionInput>
@@ -658,7 +662,7 @@
             </SelectInput>
 
             {#if DBState.db.stabilityModel === 'core'}
-                <span class="text-textcolor">SD Core Style</span>
+                <span class="text-textcolor">SD Core Style <Help key="stabilityCoreStyle"/></span>
                 <SelectInput className="mt-2 mb-4" bind:value={DBState.db.stabllityStyle}>
                     <OptionInput value="" >Unspecified</OptionInput>
                     <OptionInput value="3d-model" >3D Model</OptionInput>
@@ -683,46 +687,46 @@
         {/if}
 
         {#if DBState.db.sdProvider === 'comfyui'}
-            <span class="text-textcolor mt-2">ComfyUI {language.providerURL}</span>
-            <TextInput size="sm" marginBottom placeholder="http://127.0.0.1:8188" bind:value={DBState.db.comfyUiUrl}/>
+            <span class="text-textcolor mt-2">ComfyUI {language.providerURL} <Help key="comfyUrl"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="http://127.0.0.1:8188" bind:value={DBState.db.comfyUiUrl}/>
 
             <span class="text-textcolor">Workflow <Help key="comfyWorkflow" /></span>
-            <TextInput size="sm" marginBottom bind:value={DBState.db.comfyConfig.workflow}/>
+            <TextInput className="mt-2" marginBottom bind:value={DBState.db.comfyConfig.workflow}/>
 
-            <span class="text-textcolor">Timeout (sec)</span>
-            <NumberInput size="sm" marginBottom bind:value={DBState.db.comfyConfig.timeout} min={1} max={120} />
+            <span class="text-textcolor">Timeout (sec) <Help key="comfyTimeout"/></span>
+            <NumberInput className="mt-2" marginBottom bind:value={DBState.db.comfyConfig.timeout} min={1} max={120} />
         {/if}
 
         {#if DBState.db.sdProvider === 'comfy'}
             <span class="text-draculared text-xs mb-2">The first image generated by the prompt will be selected. </span>
             <span class="text-textcolor mt-2">ComfyUI {language.providerURL}</span>
-            <TextInput size="sm" marginBottom placeholder="http://127.0.0.1:8188" bind:value={DBState.db.comfyUiUrl}/>
+            <TextInput className="mt-2" marginBottom placeholder="http://127.0.0.1:8188" bind:value={DBState.db.comfyUiUrl}/>
             <span class="text-textcolor">Workflow</span>
-            <TextInput size="sm" marginBottom placeholder="valid ComfyUI API json (Enable Dev mode Options in ComfyUI)" bind:value={DBState.db.comfyConfig.workflow}/>
+            <TextInput className="mt-2" marginBottom placeholder="valid ComfyUI API json (Enable Dev mode Options in ComfyUI)" bind:value={DBState.db.comfyConfig.workflow}/>
 
             <span class="text-textcolor">Positive Text Node: ID</span>
-            <TextInput size="sm" marginBottom placeholder="eg. 1, 3, etc" bind:value={DBState.db.comfyConfig.posNodeID}/>
+            <TextInput className="mt-2" marginBottom placeholder="eg. 1, 3, etc" bind:value={DBState.db.comfyConfig.posNodeID}/>
             <span class="text-textcolor">Positive Text Node: Input Field Name</span>
-            <TextInput size="sm" marginBottom placeholder="eg. text" bind:value={DBState.db.comfyConfig.posInputName}/>
+            <TextInput className="mt-2" marginBottom placeholder="eg. text" bind:value={DBState.db.comfyConfig.posInputName}/>
             <span class="text-textcolor">Negative Text Node: ID</span>
-            <TextInput size="sm" marginBottom placeholder="eg. 1, 3, etc" bind:value={DBState.db.comfyConfig.negNodeID}/>
+            <TextInput className="mt-2" marginBottom placeholder="eg. 1, 3, etc" bind:value={DBState.db.comfyConfig.negNodeID}/>
             <span class="text-textcolor">Positive Text Node: Input Field Name</span>
-            <TextInput size="sm" marginBottom placeholder="eg. text" bind:value={DBState.db.comfyConfig.negInputName}/>
+            <TextInput className="mt-2" marginBottom placeholder="eg. text" bind:value={DBState.db.comfyConfig.negInputName}/>
             <span class="text-textcolor">Timeout (sec)</span>
-            <NumberInput size="sm" marginBottom bind:value={DBState.db.comfyConfig.timeout} min={1} max={120} />
+            <NumberInput className="mt-2" marginBottom bind:value={DBState.db.comfyConfig.timeout} min={1} max={120} />
         {/if}
 
         {#if DBState.db.sdProvider === 'fal'}
-            <span class="text-textcolor">Fal.ai API Key</span>
-            <TextInput size="sm" marginBottom placeholder="..." bind:value={DBState.db.falToken}/>
+            <span class="text-textcolor">Fal.ai API Key <Help key="falKey"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="..." bind:value={DBState.db.falToken}/>
 
-            <span class="text-textcolor mt-4">Width</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.width}/>
-            <span class="text-textcolor mt-4">Height</span>
-            <NumberInput size="sm" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.height}/>
+            <span class="text-textcolor mt-4">Width <Help key="falWidth"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.width}/>
+            <span class="text-textcolor mt-4">Height <Help key="falHeight"/></span>
+            <NumberInput className="mt-2" marginBottom min={0} max={2048} bind:value={DBState.db.sdConfig.height}/>
 
-            <span class="text-textcolor mt-4">Model</span>
-            <SelectInput className="mt-2" bind:value={DBState.db.falModel}>
+            <span class="text-textcolor mt-4">Model <Help key="falModel"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.falModel}>
                 <OptionInput value="fal-ai/flux/dev" >Flux[Dev]</OptionInput>
                 <OptionInput value="fal-ai/flux-lora" >Flux[Dev] with Lora</OptionInput>
                 <OptionInput value="fal-ai/flux-pro" >Flux[Pro]</OptionInput>
@@ -731,21 +735,21 @@
 
             {#if DBState.db.falModel === 'fal-ai/flux-lora'}
                 <span class="text-textcolor mt-4">Lora Model URL <Help key="urllora" /></span>
-                <TextInput size="sm" marginBottom bind:value={DBState.db.falLora}/>
+                <TextInput className="mt-2" marginBottom bind:value={DBState.db.falLora}/>
 
-                <span class="text-textcolor mt-4">Lora Weight</span>
-                <SliderInput fixed={2} min={0}  max={2} step={0.01} bind:value={DBState.db.falLoraScale}/>
+                <span class="text-textcolor mt-4">Lora Weight <Help key="falLoraWeight"/></span>
+                <SliderInput className="mt-2" fixed={2} min={0}  max={2} step={0.01} bind:value={DBState.db.falLoraScale}/>
             {/if}
 
 
         {/if}
 
         {#if DBState.db.sdProvider === 'Imagen'}
-            <span class="text-textcolor mt-2">GoogleAI API Key</span>
-            <TextInput marginBottom={true} size={"sm"} placeholder="..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.google.accessToken}/>
-            
-            <span class="text-textcolor">Model</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.ImagenModel}>
+            <span class="text-textcolor mt-2">GoogleAI API Key <Help key="imagenKey"/></span>
+            <TextInput className="mt-2" marginBottom={true} placeholder="..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.google.accessToken}/>
+
+            <span class="text-textcolor">Model <Help key="imagenModel"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.ImagenModel}>
                 <OptionInput value="imagen-4.0-generate-001" >Imagen 4</OptionInput>
                 <OptionInput value="imagen-4.0-ultra-generate-001" >Imagen 4 Ultra</OptionInput>
                 <OptionInput value="imagen-4.0-fast-generate-001" >Imagen 4 Fast</OptionInput>
@@ -753,15 +757,15 @@
             </SelectInput>
 
             {#if DBState.db.ImagenModel === 'imagen-4.0-generate-001' || DBState.db.ImagenModel === 'imagen-4.0-ultra-generate-001'}
-                <span class="text-textcolor">Image size</span>
-                <SelectInput className="mb-4" bind:value={DBState.db.ImagenImageSize}>
+                <span class="text-textcolor">Image size <Help key="imagenImageSize"/></span>
+                <SelectInput className="mt-2 mb-4" bind:value={DBState.db.ImagenImageSize}>
                     <OptionInput value="1K" >1K</OptionInput>
                     <OptionInput value="2K" >2K</OptionInput>
                 </SelectInput>
             {/if}
 
-            <span class="text-textcolor">Aspect ratio</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.ImagenAspectRatio}>
+            <span class="text-textcolor">Aspect ratio <Help key="imagenAspectRatio"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.ImagenAspectRatio}>
                 <OptionInput value="1:1" >1:1</OptionInput>
                 <OptionInput value="3:4" >3:4</OptionInput>
                 <OptionInput value="4:3" >4:3</OptionInput>
@@ -769,8 +773,8 @@
                 <OptionInput value="16:9" >16:9</OptionInput>
             </SelectInput>
 
-            <span class="text-textcolor">Person generation</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.ImagenPersonGeneration}>
+            <span class="text-textcolor">Person generation <Help key="imagenPersonGeneration"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.ImagenPersonGeneration}>
                 <OptionInput value="allow_all" >Allow all</OptionInput>
                 <OptionInput value="allow_adult" >Allow adult</OptionInput>
                 <OptionInput value="dont_allow" >Don't allow</OptionInput>
@@ -778,17 +782,17 @@
         {/if}
 
         {#if DBState.db.sdProvider === 'openai-compat'}
-            <span class="text-textcolor mt-2">API URL</span>
-            <TextInput size="sm" marginBottom placeholder="https://api.example.com/v1/images/generations" bind:value={DBState.db.openaiCompatImage.url}/>
+            <span class="text-textcolor mt-2">API URL <Help key="oaiImgUrl"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="https://api.example.com/v1/images/generations" bind:value={DBState.db.openaiCompatImage.url}/>
 
-            <span class="text-textcolor">API Key</span>
-            <TextInput size="sm" marginBottom placeholder="sk-..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.openaiCompatImage.key}/>
+            <span class="text-textcolor">API Key <Help key="oaiImgKey"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="sk-..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.openaiCompatImage.key}/>
 
-            <span class="text-textcolor">Model</span>
-            <TextInput size="sm" marginBottom placeholder="dall-e-3" bind:value={DBState.db.openaiCompatImage.model}/>
+            <span class="text-textcolor">Model <Help key="oaiImgModel"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="dall-e-3" bind:value={DBState.db.openaiCompatImage.model}/>
 
-            <span class="text-textcolor">Image Size</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.openaiCompatImage.size}>
+            <span class="text-textcolor">Image Size <Help key="oaiImgSize"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.openaiCompatImage.size}>
                 <OptionInput value="1024x1024" >1024x1024</OptionInput>
                 <OptionInput value="1536x1024" >1536x1024</OptionInput>
                 <OptionInput value="1024x1536" >1024x1536</OptionInput>
@@ -796,8 +800,8 @@
                 <OptionInput value="256x256" >256x256</OptionInput>
             </SelectInput>
 
-            <span class="text-textcolor">Quality</span>
-            <SelectInput className="mb-4" bind:value={DBState.db.openaiCompatImage.quality}>
+            <span class="text-textcolor">Quality <Help key="oaiImgQuality"/></span>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.openaiCompatImage.quality}>
                 <OptionInput value="auto" >Auto</OptionInput>
                 <OptionInput value="low" >Low</OptionInput>
                 <OptionInput value="medium" >Medium</OptionInput>
@@ -806,10 +810,10 @@
         {/if}
 
         {#if DBState.db.sdProvider === 'wavespeed'}
-            <span class="text-textcolor">API Key</span>
-            <TextInput size="sm" marginBottom placeholder="sk-..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.wavespeedImage.key}/>
+            <span class="text-textcolor">API Key <Help key="waveKey"/></span>
+            <TextInput className="mt-2" marginBottom placeholder="sk-..." hideText={DBState.db.hideApiKey} bind:value={DBState.db.wavespeedImage.key}/>
 
-            <span class="text-textcolor">Model</span>
+            <span class="text-textcolor">Model <Help key="waveModel"/></span>
             <button
               class="px-3 py-2 bg-darkbutton rounded-md hover:bg-textcolor2 transition-colors disabled:opacity-50"
               disabled={isWavespeedLoading}
@@ -818,12 +822,12 @@
                 {isWavespeedLoading ? 'Loading...' : 'Refresh Models'}
             </button>
             <TextInput
+              className="mt-2"
               bind:value={wavespeedSearchQuery}
               placeholder="Search models..."
-              size="sm"
               marginBottom
             />
-            <SelectInput className="mb-4" bind:value={DBState.db.wavespeedImage.model} onchange={handleModelChange}>
+            <SelectInput className="mt-2 mb-4" bind:value={DBState.db.wavespeedImage.model} onchange={handleModelChange}>
                 <OptionInput value="" >Select a model...</OptionInput>
                 {#if wavespeedModels.length > 0}
                     {#each getFilteredModels() as model}
@@ -836,17 +840,18 @@
                 {/if}
             </SelectInput>
 
-            <span class="text-textcolor mt-4">LoRAs</span>
+            <span class="text-textcolor mt-4">LoRAs <Help key="waveLoras"/></span>
             {#if wavespeedModels.find(m => m.model_id === DBState.db.wavespeedImage.model)?.supportsLoras}
                 {#each wavespeedLoras as lora, index}
                     <TextInput
-                      size="sm"
+                      className="mt-2"
                       marginBottom
                       marginTop
                       placeholder={`LoRA ${index + 1} URL (optional)`}
                       bind:value={lora.path}
                     />
                     <SliderInput
+                      className="mt-2"
                       marginBottom
                       min={0}
                       max={4}
@@ -864,9 +869,9 @@
                 </span>
             {/if}
 
-            <span class="text-textcolor">Image Reference</span>
+            <span class="text-textcolor">Image Reference <Help key="waveImageReference"/></span>
             {#if wavespeedModels.find(m => m.model_id === DBState.db.wavespeedImage.model)?.supportsImageInput}
-                <SelectInput className="mb-4" bind:value={DBState.db.wavespeedImage.reference_mode}>
+                <SelectInput className="mt-2 mb-4" bind:value={DBState.db.wavespeedImage.reference_mode}>
                     <OptionInput value="" >None</OptionInput>
                     <OptionInput value="image" >Upload Image</OptionInput>
                     <OptionInput value="character" >Use Character Image</OptionInput>
@@ -893,16 +898,16 @@
                             console.log('Character image set:', DBState.db.wavespeedImage.reference_image)
                         }}>
                             {#if !DBState.db.wavespeedImage.reference_image || DBState.db.wavespeedImage.reference_image === ''}
-                                <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                                <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                                     <span class="text-sm">Upload<br />Image</span>
                                 </div>
                             {:else}
                                 {#await getCharImage(DBState.db.wavespeedImage.reference_image, 'plain')}
-                                    <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500 flex items-center justify-center">
+                                    <div class="rounded-md h-20 w-20 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary flex items-center justify-center">
                                         <span class="text-sm">Uploading<br />Image..</span>
                                     </div>
                                 {:then im}
-                                    <img src={im} class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-green-500" alt="Base Preview"/>
+                                    <img src={im} class="rounded-md h-40 shadow-lg bg-textcolor2 cursor-pointer hover:text-primary" alt="Base Preview"/>
                                 {/await}
                             {/if}
                         </button>
@@ -932,35 +937,35 @@
     </Accordion>
 {/if}
 
-{#if submenu === 1 || submenu === -1}
-<Accordion name="TTS" styled disabled={submenu !== -1}>
-    <span class="text-textcolor mt-2">Auto Speech</span>
-    <CheckInput bind:check={DBState.db.ttsAutoSpeech}/>
+{#if submenu === 1}
+<Accordion name="TTS" styled disabled>
+    <span class="text-textcolor mt-2">Auto Speech <Help key="ttsAutoSpeech"/></span>
+    <CheckInput className="mt-2" bind:check={DBState.db.ttsAutoSpeech}/>
 
-    <span class="text-textcolor mt-2">ElevenLabs API key</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.elevenLabKey}/>
+    <span class="text-textcolor mt-2">ElevenLabs API key <Help key="ttsElevenLabsKey"/></span>
+    <TextInput className="mt-2" marginBottom bind:value={DBState.db.elevenLabKey}/>
 
-    <span class="text-textcolor mt-2">VOICEVOX URL</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.voicevoxUrl}/>
+    <span class="text-textcolor mt-2">VOICEVOX URL <Help key="ttsVoicevoxUrl"/></span>
+    <TextInput className="mt-2" marginBottom bind:value={DBState.db.voicevoxUrl}/>
 
-    <span class="text-textcolor">OpenAI Key</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.openAIKey}/>
+    <span class="text-textcolor">OpenAI Key <Help key="ttsOpenAIKey"/></span>
+    <TextInput className="mt-2" marginBottom bind:value={DBState.db.openAIKey}/>
 
-    <span class="text-textcolor mt-2">NovelAI API key</span>
-    <TextInput size="sm" marginBottom placeholder="pst-..." bind:value={DBState.db.NAIApiKey}/>
+    <span class="text-textcolor mt-2">NovelAI API key <Help key="ttsNAIKey"/></span>
+    <TextInput className="mt-2" marginBottom placeholder="pst-..." bind:value={DBState.db.NAIApiKey}/>
 
-    <span class="text-textcolor">Huggingface Key</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.huggingfaceKey} placeholder="hf_..."/>
+    <span class="text-textcolor">Huggingface Key <Help key="ttsHuggingfaceKey"/></span>
+    <TextInput className="mt-2" marginBottom bind:value={DBState.db.huggingfaceKey} placeholder="hf_..."/>
 
-    <span class="text-textcolor">fish-speech API Key</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.fishSpeechKey}/>
+    <span class="text-textcolor">fish-speech API Key <Help key="ttsFishSpeechKey"/></span>
+    <TextInput className="mt-2" marginBottom bind:value={DBState.db.fishSpeechKey}/>
 
 </Accordion>
 {/if}
 
-{#if submenu === 2 || submenu === -1}
-<Accordion name={language.emotionImage} styled disabled={submenu !== -1}>
-    <span class="text-textcolor mt-2">{language.emotionMethod}</span>
+{#if submenu === 2}
+<Accordion name={language.emotionImage} styled disabled>
+    <span class="text-textcolor mt-2">{language.emotionMethod} <Help key="emotionMethod"/></span>
 
     <SelectInput className="mt-2 mb-4" bind:value={DBState.db.emotionProcesser}>
         <OptionInput value="submodel" >Ax. Model</OptionInput>
@@ -969,11 +974,11 @@
 </Accordion>
 {/if}
 
-{#if submenu === 0 || submenu === -1}
-    <Accordion name={language.longTermMemory} styled disabled={submenu !== -1}>
-        <span class="text-textcolor mt-4">{language.type}</span>
+{#if submenu === 0}
+    <Accordion name={language.longTermMemory} styled disabled>
+        <span class="text-textcolor mt-4">{language.type} <Help key="memType"/></span>
 
-        <SelectInput className="mb-4" value={
+        <SelectInput className="mt-2 mb-4" value={
             DBState.db.hypaV3 ? 'hypaV3' : 'none'
         } onchange={(v) => {
             //@ts-expect-error 'value' doesn't exist on EventTarget, but target is HTMLSelectElement here
@@ -992,17 +997,15 @@
 
         {#if DBState.db.hypaV3}
             <span class="max-w-full mb-6 text-sm text-wrap wrap-break-word text-textcolor2">{language.hypaV3Settings.descriptionLabel}</span>
-            <span class="text-textcolor">Preset</span>
-            <select class={"border border-darkborderc focus:border-borderc rounded-md shadow-xs text-textcolor bg-transparent focus:ring-borderc focus:ring-2 focus:outline-hidden transition-colors duration-200 text-md px-4 py-2 mb-1"}
-                bind:value={DBState.db.hypaV3PresetId}
-            >
+            <span class="text-textcolor">Preset <Help key="hypaV3Preset"/></span>
+            <SelectInput className="mt-2 mb-1" bind:value={DBState.db.hypaV3PresetId}>
                 {#each DBState.db.hypaV3Presets as preset, i}
-                    <option class="bg-darkbg appearance-none" value={i}>{preset.name}</option>
+                    <OptionInput value={i}>{preset.name}</OptionInput>
                 {/each}
-            </select>
+            </SelectInput>
 
             <div class="flex items-center mb-8">
-                <button class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer" onclick={() => {
+                <button class="mr-2 text-textcolor2 hover:text-primary cursor-pointer" onclick={() => {
                     const newPreset = createHypaV3Preset()
                     const presets = DBState.db.hypaV3Presets
 
@@ -1013,11 +1016,11 @@
                     <PlusIcon size={24}/>
                 </button>
 
-                <button class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async () => {
+                <button class="mr-2 text-textcolor2 hover:text-primary cursor-pointer" onclick={async () => {
                     const presets = DBState.db.hypaV3Presets
 
                     if(presets.length === 0){
-                        alertError("There must be least one preset.")
+                        notifyError("There must be least one preset.")
                         return
                     }
 
@@ -1033,11 +1036,11 @@
                     <PencilIcon size={24}/>
                 </button>
 
-                <button class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async (e) => {
+                <button class="mr-2 text-textcolor2 hover:text-red-400 cursor-pointer" onclick={async (e) => {
                     const presets = DBState.db.hypaV3Presets
 
                     if(presets.length <= 1){
-                        alertError("There must be least one preset.")
+                        notifyError("There must be least one preset.")
                         return
                     }
 
@@ -1056,12 +1059,12 @@
 
                 <div class="ml-2 mr-4 w-px h-full bg-darkborderc"></div>
 
-                <button class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async() => {
+                <button class="mr-2 text-textcolor2 hover:text-primary cursor-pointer" onclick={async() => {
                     try {
                         const presets = DBState.db.hypaV3Presets
                         
                         if(presets.length === 0){
-                            alertError("There must be least one preset.")
+                            notifyError("There must be least one preset.")
                             return
                         }
 
@@ -1074,7 +1077,7 @@
                         }), 'utf-8')
                         
                         await downloadFile(`hypaV3_export_${preset.name}.json`, bytesExport)
-                        alertNormal(language.successExport)
+                        notifySuccess(language.successExport)
                     } catch (error) {
                         alertError(`${error}`)
                     }
@@ -1082,7 +1085,7 @@
                     <DownloadIcon size={24}/>
                 </button>
 
-                <button class="mr-2 text-textcolor2 hover:text-green-500 cursor-pointer" onclick={async() => {
+                <button class="mr-2 text-textcolor2 hover:text-primary cursor-pointer" onclick={async() => {
                     try {
                         const bytesImport = (await selectSingleFile(['json'])).data
 
@@ -1102,7 +1105,7 @@
                         DBState.db.hypaV3Presets = presets
                         DBState.db.hypaV3PresetId = DBState.db.hypaV3Presets.length - 1
 
-                        alertNormal(language.successImport)
+                        notifySuccess(language.successImport)
                     } catch (error) {
                         alertError(`${error}`)
                     }
@@ -1114,8 +1117,8 @@
             {#if DBState.db.hypaV3Presets?.[DBState.db.hypaV3PresetId]?.settings}
                 {@const settings = DBState.db.hypaV3Presets[DBState.db.hypaV3PresetId].settings}
 
-                <span class="text-textcolor">{language.model}</span>
-                <SelectInput className="mb-4" bind:value={settings.summarizationModel}>
+                <span class="text-textcolor">{language.model} <Help key="hypaV3SummaryModel"/></span>
+                <SelectInput className="mt-2 mb-4" bind:value={settings.summarizationModel}>
                     <OptionInput value="subModel">{language.submodel}</OptionInput>
                     {#if "gpu" in navigator}
                         <OptionInput value="Qwen3-1.7B-q4f32_1-MLC">Qwen3 1.7B (GPU)</OptionInput>
@@ -1125,32 +1128,32 @@
                 </SelectInput>
                 <span class="text-textcolor">{language.summarizationPrompt} <Help key="summarizationPrompt"/></span>
                 <div class="mb-4">
-                    <TextAreaInput size="sm" placeholder={language.hypaV3Settings.supaMemoryPromptPlaceHolder} bind:value={settings.summarizationPrompt} />
+                    <TextAreaInput className="mt-2 mb-4" placeholder={language.hypaV3Settings.supaMemoryPromptPlaceHolder} bind:value={settings.summarizationPrompt} />
                 </div>
                 <span class="text-textcolor">{language.reSummarizationPrompt} <Help key="reSummarizationPrompt"/></span>
                 <div class="mb-4">
-                    <TextAreaInput size="sm" placeholder={language.hypaV3Settings.supaMemoryPromptPlaceHolder} bind:value={settings.reSummarizationPrompt} />
+                    <TextAreaInput className="mt-2 mb-4" placeholder={language.hypaV3Settings.supaMemoryPromptPlaceHolder} bind:value={settings.reSummarizationPrompt} />
                 </div>
                 {#await getMaxMemoryRatio() then maxMemoryRatio}
                 <span class="text-textcolor">{language.hypaV3Settings.maxMemoryTokensRatioLabel}</span>
-                <NumberInput marginBottom disabled size="sm" value={maxMemoryRatio} />
+                <NumberInput className="mt-2" marginBottom disabled value={maxMemoryRatio} />
                 {:catch error}
                 <span class="mb-4 text-red-400">{language.hypaV3Settings.maxMemoryTokensRatioError}</span>
                 {/await}
                 <span class="text-textcolor">{language.hypaV3Settings.memoryTokensRatioLabel} <Help key="hypaV3MemoryTokensRatio"/></span>
-                <SliderInput marginBottom min={0} max={1} step={0.01} fixed={2} bind:value={settings.memoryTokensRatio} />
+                <SliderInput className="mt-2" marginBottom min={0} max={1} step={0.01} fixed={2} bind:value={settings.memoryTokensRatio} />
                 <span class="text-textcolor">{language.hypaV3Settings.extraSummarizationRatioLabel} <Help key="hypaV3ExtraSummarizationRatio"/></span>
-                <SliderInput marginBottom min={0} max={1 - settings.memoryTokensRatio} step={0.01} fixed={2} bind:value={settings.extraSummarizationRatio} />
+                <SliderInput className="mt-2" marginBottom min={0} max={1 - settings.memoryTokensRatio} step={0.01} fixed={2} bind:value={settings.extraSummarizationRatio} />
                 <span class="text-textcolor">{language.hypaV3Settings.maxChatsPerSummaryLabel} <Help key="hypaV3MaxChatsPerSummary"/></span>
-                <NumberInput marginBottom size="sm" min={1} bind:value={settings.maxChatsPerSummary} />
+                <NumberInput className="mt-2" marginBottom min={1} bind:value={settings.maxChatsPerSummary} />
                 <span class="text-textcolor">{language.hypaV3Settings.queryChatCountLabel} <Help key="hypaV3QueryChatCount"/></span>
-                <NumberInput marginBottom size="sm" min={1} max={20} bind:value={settings.queryChatCount} />
+                <NumberInput className="mt-2" marginBottom min={1} max={20} bind:value={settings.queryChatCount} />
                 <span class="text-textcolor">{language.hypaV3Settings.recentMemoryRatioLabel} <Help key="hypaV3RecentMemoryRatio"/></span>
-                <SliderInput marginBottom min={0} max={1} step={0.01} fixed={2} bind:value={settings.recentMemoryRatio} />
+                <SliderInput className="mt-2" marginBottom min={0} max={1} step={0.01} fixed={2} bind:value={settings.recentMemoryRatio} />
                 <span class="text-textcolor">{language.hypaV3Settings.similarMemoryRatioLabel} <Help key="hypaV3SimilarMemoryRatio"/></span>
-                <SliderInput marginBottom min={0} max={1} step={0.01} fixed={2} bind:value={settings.similarMemoryRatio} />
+                <SliderInput className="mt-2" marginBottom min={0} max={1} step={0.01} fixed={2} bind:value={settings.similarMemoryRatio} />
                 <span class="text-textcolor">{language.hypaV3Settings.randomMemoryRatioLabel} <Help key="hypaV3RandomMemoryRatio"/></span>
-                <NumberInput marginBottom disabled size="sm" value={parseFloat((1 - settings.recentMemoryRatio - settings.similarMemoryRatio).toFixed(2))} />
+                <NumberInput className="mt-2" marginBottom disabled value={parseFloat((1 - settings.recentMemoryRatio - settings.similarMemoryRatio).toFixed(2))} />
                 <div class="mb-2 flex items-center">
                     <Check name={language.hypaV3Settings.preserveOrphanedMemoryLabel} bind:check={settings.preserveOrphanedMemory} />
                     <Help key="hypaV3PreserveOrphanedMemory"/>
@@ -1174,13 +1177,13 @@
                     </div>
                     {#if settings.useExperimentalImpl}
                         <span class="text-textcolor">Summarization Requests Per Minute <Help key="hypaV3SummarizationRequestsPerMinute"/></span>
-                        <NumberInput marginBottom size="sm" min={1} bind:value={settings.summarizationRequestsPerMinute} />
+                        <NumberInput className="mt-2" marginBottom min={1} bind:value={settings.summarizationRequestsPerMinute} />
                         <span class="text-textcolor">Summarization Max Concurrent <Help key="hypaV3SummarizationMaxConcurrent"/></span>
-                        <NumberInput marginBottom size="sm" min={1} max={10} bind:value={settings.summarizationMaxConcurrent} />
+                        <NumberInput className="mt-2" marginBottom min={1} max={10} bind:value={settings.summarizationMaxConcurrent} />
                         <span class="text-textcolor">Embedding Requests Per Minute <Help key="hypaV3EmbeddingRequestsPerMinute"/></span>
-                        <NumberInput marginBottom size="sm" min={1} bind:value={settings.embeddingRequestsPerMinute} />
+                        <NumberInput className="mt-2" marginBottom min={1} bind:value={settings.embeddingRequestsPerMinute} />
                         <span class="text-textcolor">Embedding Max Concurrent <Help key="hypaV3EmbeddingMaxConcurrent"/></span>
-                        <NumberInput marginBottom size="sm" min={1} max={10} bind:value={settings.embeddingMaxConcurrent} />
+                        <NumberInput className="mt-2" marginBottom min={1} max={10} bind:value={settings.embeddingMaxConcurrent} />
                     {:else}
                         <div class="mb-2 flex items-center">
                             <Check name={language.hypaV3Settings.enableSimilarityCorrectionLabel} bind:check={settings.enableSimilarityCorrection} />
@@ -1194,7 +1197,7 @@
         {/if}
 
         <span class="text-textcolor">{language.embedding} <Help key="embedding"/></span>
-        <SelectInput className="mb-4" bind:value={DBState.db.hypaModel}>
+        <SelectInput className="mt-2 mb-4" bind:value={DBState.db.hypaModel}>
             {#if 'gpu' in navigator}
                 <OptionInput value="MiniLMGPU">MiniLM L6 v2 (GPU)</OptionInput>
                 <OptionInput value="nomicGPU">Nomic Embed Text v1.5 (GPU)</OptionInput>
@@ -1217,23 +1220,24 @@
         </SelectInput>
 
         {#if DBState.db.hypaModel === 'openai3small' || DBState.db.hypaModel === 'openai3large' || DBState.db.hypaModel === 'ada'}
-            <span class="text-textcolor">OpenAI API Key</span>
-            <TextInput size="sm" marginBottom bind:value={DBState.db.supaMemoryKey}/>
+            <span class="text-textcolor">OpenAI API Key <Help key="embeddingOpenAIKey"/></span>
+            <TextInput className="mt-2" marginBottom bind:value={DBState.db.supaMemoryKey}/>
         {/if}
 
         {#if DBState.db.hypaModel === 'custom'}
-            <span class="text-textcolor">URL</span>
-            <TextInput size="sm" marginBottom bind:value={DBState.db.hypaCustomSettings.url}/>
-            <span class="text-textcolor">Key/Password</span>
-            <TextInput size="sm" marginBottom bind:value={DBState.db.hypaCustomSettings.key}/>
-            <span class="text-textcolor">Request Model</span>
-            <TextInput size="sm" marginBottom bind:value={DBState.db.hypaCustomSettings.model}/>
+            <span class="text-textcolor">URL <Help key="embeddingCustomURL"/></span>
+            <TextInput className="mt-2" marginBottom bind:value={DBState.db.hypaCustomSettings.url}/>
+            <span class="text-textcolor">Key/Password <Help key="embeddingCustomKey"/></span>
+            <TextInput className="mt-2" marginBottom bind:value={DBState.db.hypaCustomSettings.key}/>
+            <span class="text-textcolor">Request Model <Help key="embeddingCustomModel"/></span>
+            <TextInput className="mt-2" marginBottom bind:value={DBState.db.hypaCustomSettings.model}/>
         {/if}
 
         {#if DBState.db.hypaModel === 'voyageContext3'}
-            <span class="text-textcolor">Voyage API Key</span>
-            <TextInput size="sm" marginBottom hideText={DBState.db.hideApiKey} bind:value={DBState.db.voyageApiKey}/>
+            <span class="text-textcolor">Voyage API Key <Help key="embeddingVoyageKey"/></span>
+            <TextInput className="mt-2" marginBottom hideText={DBState.db.hideApiKey} bind:value={DBState.db.voyageApiKey}/>
         {/if}
 
     </Accordion>
 {/if}
+</SettingPage>

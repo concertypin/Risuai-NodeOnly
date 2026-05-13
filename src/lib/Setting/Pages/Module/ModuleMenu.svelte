@@ -12,7 +12,7 @@
     import Help from "src/lib/Others/Help.svelte";
     import TextAreaInput from "src/lib/UI/GUI/TextAreaInput.svelte";
     import { getFileSrc, saveAsset, downloadFile } from "src/ts/globalApi.svelte";
-    import { alertNormal, alertError } from "src/ts/alert";
+    import { alertError, notifySuccess } from "src/ts/alert";
     import { exportRegex, importRegex } from "src/ts/process/scripts";
     import { selectMultipleFile } from "src/ts/util";
     
@@ -90,7 +90,7 @@
 
             await downloadFile(`lorebook_export.json`, stringl)
 
-            alertNormal(language.successExport)
+            notifySuccess(language.successExport)
         } catch (error) {
             alertError(`${error}`)
         }
@@ -195,17 +195,18 @@
 </div>
 
 {#if submenu === 0}
-    <span>{language.name}</span>
-    <TextInput bind:value={currentModule.name} className="mt-1"/>
-    <span class="mt-4">{language.description}</span>
-    <TextInput bind:value={currentModule.description} className="mt-1" size="sm"/>
+    <span>{language.name} <Help key="moduleName" /></span>
+    <TextInput bind:value={currentModule.name} className="mt-2"/>
+    <span class="mt-4">{language.description} <Help key="moduleDescription" /></span>
+    <TextInput bind:value={currentModule.description} className="mt-2"/>
     <span class="mt-4">{language.namespace} <Help key="namespace" /></span>
-    <TextInput bind:value={currentModule.namespace} className="mt-1" size="sm"/>
+    <TextInput bind:value={currentModule.namespace} className="mt-2"/>
     <div class="flex items-center mt-4">
         <Check bind:check={currentModule.hideIcon} name={language.hideChatIcon}/>
+        <Help key="moduleHideChatIcon" />
     </div>
     <span class="mt-4">{language.customPromptTemplateToggle} <Help key='customPromptTemplateToggle' /></span>
-    <TextAreaInput bind:value={currentModule.customModuleToggle}/>
+    <TextAreaInput className="mt-2 mb-4" bind:value={currentModule.customModuleToggle}/>
 {/if}
 {#if submenu === 1 && (Array.isArray(currentModule.lorebook))}
     <LoreBookList externalLoreBooks={currentModule.lorebook} />
@@ -228,29 +229,32 @@
 {/if}
 
 {#if submenu === 2 && (Array.isArray(currentModule.regex))}
-    <TextAreaInput bind:value={currentModule.backgroundEmbedding} className="mt-2" placeholder={language.backgroundHTML} size="sm"/>
+    <span class="mt-2 flex items-center">{language.backgroundHTML} <Help key="moduleBackgroundEmbedding" /></span>
+    <TextAreaInput bind:value={currentModule.backgroundEmbedding} className="mt-2" placeholder={language.backgroundHTML}/>
+    <span class="mt-4 flex items-center">{language.regexScript} <Help key="moduleRegexList" /></span>
     <RegexList bind:value={currentModule.regex}/>
     <div class="text-textcolor2 mt-2 flex gap-2">
-        <button class="font-medium cursor-pointer hover:text-green-500" onclick={() => {
+        <button class="font-medium cursor-pointer hover:text-primary" onclick={() => {
             addRegex()
         }}><PlusIcon /></button>
-        <button class="font-medium cursor-pointer hover:text-green-500" onclick={() => {
+        <button class="font-medium cursor-pointer hover:text-primary" onclick={() => {
             exportRegex(currentModule.regex)
         }}><DownloadIcon /></button>
-        <button class="font-medium cursor-pointer hover:text-green-500" onclick={async () => {
+        <button class="font-medium cursor-pointer hover:text-primary" onclick={async () => {
             currentModule.regex = await importRegex(currentModule.regex)
         }}><HardDriveUploadIcon /></button>
     </div>
 {/if}
 
 {#if submenu === 5 && (Array.isArray(currentModule.assets))}
+    <span class="mb-2 flex items-center">{language.additionalAssets} <Help key="moduleAdditionalAssets" /></span>
     <div class="w-full max-w-full border border-selected rounded-md p-2">
         <table class="contain w-full max-w-full tabler mt-2">
             <tbody>
             <tr>
                 <th class="font-medium">{language.value}</th>
                 <th class="font-medium cursor-pointer w-10">
-                    <button class="hover:text-green-500" onclick={async () => {
+                    <button class="hover:text-primary" onclick={async () => {
                         const da = await selectMultipleFile(['png', 'webp', 'mp4', 'mp3', 'gif', 'jpeg', 'jpg', 'ttf', 'otf', 'css', 'webm', 'woff', 'woff2', 'svg', 'avif'])
                         currentModule.assets = currentModule.assets ?? []
                         if(!da){
@@ -287,11 +291,11 @@
                                     <img src={assetFilePath[i]} class="w-16 h-16 m-1 rounded-md" alt={assets[0]}/>
                                 {/if}
                             {/if}
-                            <TextInput fullwidth size="sm" marginBottom bind:value={currentModule.assets[i][0]} placeholder="..." />
+                            <TextInput fullwidth marginBottom bind:value={currentModule.assets[i][0]} placeholder="..." />
                         </td>
                         
                         <th class="font-medium cursor-pointer w-10">
-                            <button class="hover:text-green-500" onclick={() => {
+                            <button class="hover:text-red-400" onclick={() => {
                                 let additionalAssets = currentModule.assets
                                 additionalAssets.splice(i, 1)
                                 currentModule.assets = additionalAssets

@@ -132,7 +132,7 @@
             <h2 class="text-xl font-bold">{language.bookmarks}</h2>
             <div class="ml-auto flex items-center gap-2">
                 <button 
-                    class="text-textcolor2 hover:text-green-500" 
+                    class="text-textcolor2 hover:text-primary" 
                     onclick={toggleExpandAll}
                     title={expandAll ? language.collapseAll : language.expandAll}
                 >
@@ -142,7 +142,7 @@
                         <BookOpenCheckIcon size={20} />
                     {/if}   
                 </button>
-                <button class="text-textcolor2 hover:text-green-500" onclick={close}>
+                <button class="text-textcolor2 hover:text-primary" onclick={close}>
                     <XIcon size={24}/>
                 </button>
             </div>
@@ -163,10 +163,10 @@
                         >
                             <span class="grow text-left truncate">{chara.chats[chara.chatPage].bookmarkNames?.[msg.chatId] || msg.data.substring(0, 30) + '...'}</span>
                             <div class="shrink-0 flex items-center gap-2 ml-2">
-                                <button class="text-textcolor2 hover:text-blue-500" title={language.goToChat} onclick={(e) => { e.stopPropagation(); goToChat(msg.originalIndex); }}>
+                                <button class="text-textcolor2 hover:text-primary" title={language.goToChat} onclick={(e) => { e.stopPropagation(); goToChat(msg.originalIndex); }}>
                                     <ArrowRightIcon size={20} />
                                 </button>
-                                <button class="text-textcolor2 hover:text-green-500" onclick={(e) => { e.stopPropagation(); editName(msg.chatId); }}>
+                                <button class="text-textcolor2 hover:text-primary" onclick={(e) => { e.stopPropagation(); editName(msg.chatId); }}>
                                     <PencilIcon size={16} />
                                 </button>
                                 <button class="text-textcolor2 hover:text-red-500" onclick={(e) => { e.stopPropagation(); removeBookmark(msg.chatId); }}>

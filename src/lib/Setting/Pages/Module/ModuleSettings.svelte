@@ -1,5 +1,6 @@
 <script lang="ts">
     import { language } from "src/lang";
+    import SettingPage from "src/lib/UI/GUI/SettingPage.svelte";
     
     import { DBState } from 'src/ts/stores.svelte';
     import Button from "src/lib/UI/GUI/Button.svelte";
@@ -37,7 +38,7 @@
     })
 </script>
 {#if mode === 0}
-    <h2 class="mb-2 text-2xl font-bold mt-2">{language.modules}</h2>
+    <SettingPage title={language.modules}>
 
     <TextInput className="mt-4" placeholder={language.search} bind:value={moduleSearch} />
 
@@ -60,8 +61,8 @@
                                 "mr-2 cursor-pointer text-blue-500" :
                                 rmodule.namespace && 
                                 DBState.db.moduleIntergration?.split(',').map((s) => s.trim()).includes(rmodule.namespace) ?
-                                "text-amber-500 hover:text-green-500 mr-2 cursor-pointer" :
-                                "text-textcolor2 hover:text-green-500 mr-2 cursor-pointer"
+                                "text-amber-500 hover:text-primary mr-2 cursor-pointer" :
+                                "text-textcolor2 hover:text-primary mr-2 cursor-pointer"
                             } use:tooltip={language.enableGlobal} onclick={async (e) => {
                             e.stopPropagation()
                             if(DBState.db.enabledModules.includes(rmodule.id)){
@@ -75,13 +76,13 @@
                             <Globe size={18}/>
                         </button>
                         {#if !rmodule.mcp}
-                            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" use:tooltip={language.download} onclick={async (e) => {
+                            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" use:tooltip={language.download} onclick={async (e) => {
                                 e.stopPropagation()
                                 exportModule(rmodule)
                             }}>
                                 <Share2Icon size={18}/>
                             </button>
-                            <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" use:tooltip={language.edit} onclick={async (e) => {
+                            <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" use:tooltip={language.edit} onclick={async (e) => {
                                 e.stopPropagation()
                                 const index = DBState.db.modules.findIndex((v) => v.id === rmodule.id)
                                 tempModule = rmodule
@@ -98,7 +99,7 @@
                                 <SquarePen size={18}/>
                             </button>
                         {/if}
-                        <button class="text-textcolor2 hover:text-green-500 mr-2 cursor-pointer" use:tooltip={language.remove} onclick={async (e) => {
+                        <button class="text-textcolor2 hover:text-red-400 mr-2 cursor-pointer" use:tooltip={language.remove} onclick={async (e) => {
                             e.stopPropagation()
                             const d = await alertConfirm(`${language.removeConfirm}` + rmodule.name)
                             if(d){
@@ -123,7 +124,7 @@
     </div>
 
     <div class="flex mr-2 mt-4">
-        <button class="text-textcolor2 hover:text-blue-500 mr-2 cursor-pointer" onclick={async () => {
+        <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={async () => {
             tempModule = {
                 name: '',
                 description: '',
@@ -134,26 +135,28 @@
         }}>
             <PlusIcon />
         </button>
-        <button class="text-textcolor2 hover:text-blue-500 mr-2 cursor-pointer" onclick={async () => {
+        <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={async () => {
             importMCPModule()
         }}>
             <Waypoints />
         </button>
-        <button class="text-textcolor2 hover:text-blue-500 mr-2 cursor-pointer" onclick={async () => {
+        <button class="text-textcolor2 hover:text-primary mr-2 cursor-pointer" onclick={async () => {
             importModule()
         }}>
             <HardDriveUpload  />
         </button>
     </div>
+    </SettingPage>
 {:else if mode === 1}
-    <h2 class="mb-2 text-2xl font-bold mt-2">{language.createModule}</h2>
+    <SettingPage title={language.createModule}>
     <ModuleMenu bind:currentModule={tempModule}/>
     <Button className="mt-6" onclick={() => {
         DBState.db.modules.push(tempModule)
         mode = 0
     }}>{language.createModule}</Button>
+    </SettingPage>
 {:else if mode === 2}
-    <h2 class="mb-2 text-2xl font-bold mt-2">{language.editModule}</h2>
+    <SettingPage title={language.editModule}>
     <ModuleMenu bind:currentModule={tempModule}/>
     {#if tempModule.name !== ''}
         <Button className="mt-6" onclick={() => {
@@ -161,4 +164,5 @@
             mode = 0
         }}>{language.editModule}</Button>
     {/if}
+    </SettingPage>
 {/if}

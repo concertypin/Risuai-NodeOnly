@@ -4,7 +4,7 @@ import { DBState } from '../stores.svelte';
 import { CharEmotion, selectedCharID } from "../stores.svelte";
 import { ChatTokenizer, tokenize, tokenizeNum } from "../tokenizer";
 import { language } from "../../lang";
-import { alertError, alertToast } from "../alert";
+import { alertError, notifyError } from "../alert";
 import { parseChatML } from "../parser/chatML";
 import { loadLoreBookV3Prompt } from "./lorebook.svelte";
 import { findCharacterbyId, getAuthorNoteDefaultText, getPersonaPrompt, getUserName, isLastCharPunctuation, trimUntilPunctuation, parseToggleSyntax, prebuiltAssetCommand } from "../util";
@@ -190,7 +190,7 @@ export async function sendChat(chatProcessIndex = -1,arg:{
         })
 
         if(findId === -1){
-            alertToast(`Cannot find preset: ${ele}`)
+            notifyError(`Cannot find preset: ${ele}`, { source: 'preset' })
         }
         else{
             changeToPreset(findId, true)

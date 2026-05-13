@@ -59,7 +59,7 @@
                 page = 0
                 getHub()
             }}
-            class="flex justify-center border-y border-darkborderc items-center text-gray-100 p-3 peer-focus:border-textcolor hover:bg-blue-500 transition-colors"
+            class="flex justify-center border-y border-darkborderc items-center text-gray-100 p-3 peer-focus:border-textcolor hover:bg-primary/30 transition-colors"
         >
             <SearchIcon />
         </button>
@@ -67,7 +67,7 @@
             onclick={(e) => {
                 menuOpen = true
             }}
-            class="peer-focus:border-textcolor mr-2 flex border-y border-r border-darkborderc justify-center items-center text-gray-100 p-3 rounded-r-md hover:bg-blue-500 transition-colors"
+            class="peer-focus:border-textcolor mr-2 flex border-y border-r border-darkborderc justify-center items-center text-gray-100 p-3 rounded-r-md hover:bg-primary/30 transition-colors"
         >
             <MenuIcon />
         </button>
@@ -188,7 +188,7 @@
                 <span>
                     Menu
                 </span>
-                <button class="float-right text-textcolor2 hover:text-green-500" onclick={() => {menuOpen = false}}>
+                <button class="float-right text-textcolor2 hover:text-primary" onclick={() => {menuOpen = false}}>
                     <XIcon />
                 </button>
             </h1>

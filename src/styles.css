@@ -3,6 +3,8 @@
 @plugin '@tailwindcss/typography';
 
 @theme {
+  --breakpoint-xs: 25rem;
+
   --color-bgcolor: var(--risu-theme-bgcolor);
   --color-darkbg: var(--risu-theme-darkbg);
   --color-borderc: var(--risu-theme-borderc);
@@ -12,6 +14,8 @@
   --color-textcolor2: var(--risu-theme-textcolor2);
   --color-darkborderc: var(--risu-theme-darkborderc);
   --color-darkbutton: var(--risu-theme-darkbutton);
+  --color-success: var(--risu-theme-success);
+  --color-primary: var(--risu-theme-primary);
 
   --color-primary-50: var(--risu-theme-primary-50);
   --color-primary-100: var(--risu-theme-primary-100);
@@ -177,6 +181,14 @@ body {
   --risu-theme-textcolor2: #64748b;
   --risu-theme-darkborderc: #4b5563;
   --risu-theme-darkbutton: #374151;
+  /* Semantic token — success/active/positive. Theme-independent: not part
+     of ColorScheme interface, so updateColorScheme() never overrides it.
+     See .agent/guide/ui.md "시맨틱 토큰". */
+  --risu-theme-success: #16a34a;
+  /* Primary — dynamic accent for "active/on" fills (toggle track, primary CTA).
+     Part of ColorScheme: updateColorScheme() overrides it per theme. The default
+     here is a fallback for the brief boot window before updateColorScheme runs. */
+  --risu-theme-primary: #3b82f6;
   --risu-height-size: 100%;
   --risu-font-family: Arial, sans-serif, serif;
 

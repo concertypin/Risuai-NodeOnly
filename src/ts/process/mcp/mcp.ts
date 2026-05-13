@@ -2,7 +2,7 @@ import { getDatabase } from "src/ts/storage/database.svelte";
 import { MCPClient, type JsonRPC, type MCPTool, type RPCToolCallContent } from "./mcplib";
 import { DBState } from "src/ts/stores.svelte";
 import { getModuleMcps } from "../modules";
-import { alertError, alertInput, alertNormal } from "src/ts/alert";
+import { alertInput, notifySuccess, notifyError } from "src/ts/alert";
 import { v4 } from "uuid";
 import type { MCPClientLike } from "./internalmcp";
 import { sleep } from "src/ts/util";
@@ -207,7 +207,7 @@ export async function importMCPModule(){
         !x.startsWith('stdio:') &&
         !x.startsWith('plugin:')
     ){
-        alertError('Invalid URL');
+        notifyError('Invalid URL');
         return;
     }
     try {
@@ -215,7 +215,7 @@ export async function importMCPModule(){
         console.log(metas)
         const meta = metas[x];
         if(!meta) {
-            alertError('MCP module not found or invalid URL');
+            notifyError('MCP module not found or invalid URL');
             return;
         }
         const db = getDatabase();
@@ -237,10 +237,10 @@ export async function importMCPModule(){
                 selective: false
             }]
         })
-        alertNormal(`MCP module imported successfully!\nName: ${meta.serverInfo.name}`);
+        notifySuccess(`MCP module imported successfully!\nName: ${meta.serverInfo.name}`);
 
     } catch (error) {
-        alertError(error)
+        notifyError(error)
     }
 }
 

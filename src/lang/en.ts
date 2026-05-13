@@ -1,3 +1,5 @@
+import { helpEn } from "./help.en";
+
 export const languageEnglish = {
     formating: {
         main: "Main Prompt",
@@ -31,267 +33,15 @@ export const languageEnglish = {
         networkFetchPlain: "This can be a plain fetch error. try disabling force plain fetch option in settings.",
         requestLogRemoved: "This request log is removed.",
         requestLogRemovedDesc: "This request log removes when client is refreshed or reloaded.",
+        persistFailureTitle: "Server save failed — changes are not being written to disk",
+        persistFailureAttemptedSize: "attempted size",
+        chatGuardTitle: "Chat data guard triggered — switched to safe save mode",
+        chatGuardDesc: "Suspicious save patterns blocked. Your changes will be persisted via the safe full-write fallback. If this keeps happening, please report it with browser console logs.",
+        chatGuardPersistTitle: "Save aborted to protect existing chat data",
+        chatGuardPersistDesc: "Server detected corrupted chat structure mid-persist and refused to write to disk. Your latest changes may NOT be on disk yet — re-verify before refreshing. Existing data is safe.",
     },
     showHelp: "Show Help",
-    help: {
-        model: "Model option is a main model used in chat.",
-        submodel: "Auxiliary Model is a model that used in analyzing emotion images and auto suggestions and etc. gpt3.5 is recommended.",
-        oaiapikey: "API key for OpenAI. you can get it in https://platform.openai.com/account/api-keys",
-        mainprompt: "The main prompt option sets the default model behavior.",
-        jailbreak: "The jailbreak prompt option activates when jailbreak toggle is on in character.",
-        globalNote: "A note that strongly affects model behavior, also known as UJB. Works in all characters.",
-        autoSuggest: "Prompts used to generate options when automatically suggesting user responses.",
-        formatOrder: "formating order of prompt. lower blocks does more effect to the model.",
-        forceUrl: "if it is not blank, the request will go to the url that you had inputed.",
-        tempature:
-            "lower values make character follow prompts closely, but it will more likely to response like a machine.\nHigher values will result in creative behavior, but the character's response can break down more easily.",
-        frequencyPenalty: "Higher values prevent the use of duplicate words in response, but character's response can break down more easily.",
-        presensePenalty: "Higher values prevent the use of duplicate words in all context, but character's response can break down more easily.",
-        sdProvider: "provider for image generation.",
-        msgSound: "Plays *ding* sound when character responses",
-        charDesc: "Brief description of the character. This affects characters response.",
-        charFirstMessage: "First message of the character. This highly affects characters response.",
-        charNote: "A note that strongly affects model behavior. Embbedded to current character, also known as UJB.",
-        toggleNsfw: "toggles jailbreak prompt on and off.",
-        lorebook: "Lorebook is a user-made dictionary for AI. AI only sees it when where is an activation keys in the context.",
-        loreName: "Name of the lore. It doesn't affect the Ai.",
-        loreActivationKey: "If one of the activation key exists in context, the lore will be activated and prompt will go in. seperated by commas.",
-        loreorder: "If insert Order is higher, it will effect the model more, and it will more lessly cuted when activated lore are many.",
-        bias: "bias is a key-value data which modifies the likelihood of string appearing.\nit can be -100 to 100, higher values will be more likely to appear, and lower values will be more unlikely to appear. \nAdditionaly, if its set to -101, it would work as 'strong ban word' for some models. \nWarning: if the tokenizer is wrong, it not work properly.",
-        emotion:
-            "Emotion Images option shows image depending at character's emotion which is analized by character's response. you must input emotion name as words *(like joy, happy, fear and etc.)* .emotion named **neutral** will be default emotion if it exists. must be more then 3 images to work properly.",
-        imggen: "After analyzing the chat, apply the prompt to {{slot}}.",
-        regexScript:
-            "Regex Script is a custom regex that replaces string that matches IN to OUT.\n\nThere four type options." +
-            "\n\n- **Modify Input** modifies user's input" +
-            "\n\n- **Modify Output** modifies character's output" +
-            "\n\n- **Modify Request Data** modifies current chat data when sent." +
-            "\n\n- **Modify Display** just modifies the text when shown without modifying chat data." +
-            "\n\nIN must be a regex without flags and without slashes in start and end.\n\nOUT is a string which can include replacement patterns. these are the patterns:" +
-            "\n\n- $$\n\n    - inserts $" +
-            "\n\n- $&\n\n    - inserts the matched substring." +
-            "\n\n- $`\n\n    - inserts the portion of the string that precedes the matched substring." +
-            "\n\n- $1\n\n    - inserts the first matching group. works with other number like 2, 3..." +
-            "\n\n- $(name)\n\n    - inserts the named group" +
-            "\n\nFor flags, you can not only use native supported flags, but also use these flags, which are designed for advanced users:" +
-            "\n\n- `<inject>` - injects the result to the current string." +
-            "\n- `<move_top>` - moves the result to the top of the string." +
-            "\n- `<move_bottom>` - moves the result to the bottom of the string." +
-            "\n- `<repeat_back>` - if the match is not found, it carries the result from the previous match." +
-            "\n- `<order n>` - sets the order of the result. higher order will be shown first. `n` is a number. (like `<order 1>`) if this flag is not set, it will be set to 0." +
-            "\n- `<cbs>` - parses curly braced synatxes in IN." +
-            "\n\nTo use with native flags, you can use like `gi<cbs><move_top>`.",
-        experimental: "This is a experimental feature. it might be unstable.",
-        oogaboogaURL:
-            "If your WebUI supports older version of api, your url should look *like https:.../run/textgen*\n\n" +
-            "If your WebUI supports newVersion of api, your url should look like *https://.../api/v1/generate* and use the api server as host, and add --api to arguments.",
-        exampleMessage:
-            "Example conversations that affects output of the character. It doesn't uses tokens permanently." +
-            "\n\nExample format of conversations:" +
-            "\n\n```\n<START>\n{{user}}: hi\n{{char}}: hello\n<START>\n{{user}}: hi\nHaruhi: hello\n```" +
-            "\n\n```<START>``` Marks the beginning of a new conversation.",
-        creatorQuotes: "Note that appearances on top of first message. Used to inform users about this character. It doesn't go into prompt.",
-        systemPrompt: "A prompt that replaces main prompt in settings if its not blank.",
-        chatNote: "A note that strongly affects model behavior. Embbedded to current chat, also known as memory or UJB.",
-        personality: "A brief description about character's personality. \n\n**It is not recommended to use this option. Describe it in character description instead.**",
-        scenario: "A brief description about character's scenario. \n\n**It is not recommended to use this option. Describe it in character description instead.**",
-        utilityBot: "When activated, it ignores main prompt, jailbreak and other prompts. used for bot made for utility, not for roleplay.",
-        loreSelective: "If Selective mode is toggled, both Activation Key and Secondary key should have a match to activate the lore.",
-        loreRandomActivation:
-            "If Use Probability Condition is abled, if the lore's other conditions are all met, the lore will be activated with a set probability which is set by 'Probability' each time a chat is sent.",
-        additionalAssets:
-            "Additional assets to display in your chat. \n\n - use `{{raw::<asset name>}}` to use as path.\n - use `{{image::<asset name>}}` to use as image\n - use `{{video::<asset name>}}` to use as video\n - use `{{audio::<asset name>}}` to use as audio\n    - recommended to put in Background HTML",
-        replaceGlobalNote: "If its not blank, it replaces current global note to this.",
-        backgroundHTML:
-            "A Markdown/HTML Data that would be injected to the background of chat screen.\n\n you can also use additional assets. for example, you can use `{{audio::<asset name}}` for background music." +
-            "\n\n Additionaly, you can use these with additional assets:" +
-            "\n - `{{bg::<asset name>}}`: inject the background as asset",
-        additionalText: "The text that would be added to Character Description only when ai thinks its needed, so you can put long texts here. seperate with double newlines.",
-        charjs: "A javascript code that would run with character. for example, you can check `https://github.com/kwaroran/Risuai/blob/main/src/etc/example-char.js` CURRENTLY NOT RECOMMENDED TO USE DUDE TO SECURITY REASONS. EXPORTING WOULD NOT INCLUDE THIS.",
-        romanizer:
-            "Romanizer is a plugin that converts non-roman characters to roman characters to reduce tokens when using non-roman characters while requesting data. this can result diffrent output from the original model. it is not recommended to use this plugin when using roman characters on chat.",
-        inlayImages: "If enabled, images could be inlayed to the chat and AIs can see it if they support it.",
-        metrica:
-            "Metric Systemizer is a plugin that converts metrics to imperial units when request, and vice versa on output to show user metric system while using imperial for performace. it is not recommended to use this plugin when using imperial units on chat.",
-        topP: "Top P is a probability threshold for nucleus sampling. model considers the results of the tokens with top_p probability mass.",
-        openAIFixer: "OpenAI Fixer is a plugin that fixes some of the problems of OpenAI.",
-        sayNothing: "If enabled, it will input 'say nothing' when no string inputed.",
-        showUnrecommended: "If enabled, it will show unrecommended, deprecated settings. it is NOT RECOMMENDED to use these settings.",
-        allowV2Plugin: "Warning: This enables deprecated V2.0 plugin execution. V2.0 plugins bypass the V2.1 safety check and may be unsafe. Leave this disabled unless you explicitly trust the plugin and cannot migrate it to V3 yet.",
-        imageCompression: "If enabled, it will compress images when exporting character. if animated images doesn't works, try disabling this option.",
-        inlayImageLossless: "If enabled, inlay images will be saved as lossless PNG instead of compressed WebP. This preserves original quality but uses significantly more storage.",
-        inlayImagePriority: "If enabled, inlays render as images first for faster loading. Video/audio inlays auto-switch after image load fails. Disable if you use many video/audio inlays.",
-        showModelInSidebar: "Show the current AI model name in the sidebar for quick reference.",
-        showPresetInSidebar: "Show the active prompt preset name in the sidebar for quick reference.",
-        showPersonaInSidebar: "Show the active persona name in the sidebar for quick reference.",
-        disableMobileDragDrop: "Disable drag-and-drop for chat reordering on mobile devices. Enable this if you experience accidental drags while scrolling.",
-        disableToggleBinding: "Disable the toggle binding feature that pins toggle values to individual chats. When disabled, the bind/save/preset buttons are hidden and previously bound values are not restored on chat switch.",
-        hideLoadout: "Hide the loadout feature. Loadouts let you save and restore preset/module/persona combinations. When hidden, the loadout hotkey (Ctrl+O) and quick menu entry are also disabled.",
-        hideEasyPanel: "Hide the Easy Panel menu entry. The Easy Panel itself is part of Pro Tools, but this option hides its button from the chat menu and settings sidebar independently.",
-        useExperimental: "If enabled, it will show some experimental features.",
-        forceProxyAsOpenAI: "If enabled, it will force to use OpenAI format when using reverse proxy.",
-        forcePlainFetch: "If enabled, it will use the browser Fetch API instead of the native HTTP request. This can cause CORS errors.",
-        autoFillRequestURL: "If enabled, it will automatically fill the request URL to match the current model.",
-        localNetworkModeDesc: "Routes private/LAN model URLs through the local server instead of browser direct fetch.\n\n**Purpose**\n- Avoid browser private-network/CORS restrictions\n- Mitigate timeout risk for slow first-token local inference\n\n**How it works**\n- Streaming uses experimental Job+WebSocket relay first (fallback to /proxy2)\n- Non-streaming uses /proxy2 relay\n\n**Constraints**\n- Scope is OpenAI-compatible request paths only",
-        chainOfThought: "If enabled, it will add chain of thought prompt to the prompt.",
-        gptVisionQuality: "This option is used to set the quality of the image detection model. the higher the quality, the more accurate the detection, but more tokens are used.",
-        genTimes:
-            "This option is used to set the number of responses to generate on support models. other then first response will be act as cached reroll. this can reduce the cost of the model, but it can also increase the cost if you use it without reroll.",
-        requestretrys: "This option is used to set the number of request retrys when request fails.",
-        emotionPrompt: "This option is used to set the prompt that is used to detect emotion. if it is blank, it will use the default prompt.",
-        additionalParams:
-            'Additional parameters that would be added to the request body. if you want to exclude some parameters, you can put `{{none}}` to the value. if you want to add a header instead of body, you can put `header::` in front of the key like `header::Authorization`. if you want value as json, you can put `json::` in front of the value like `json::{"key":"value"}`. otherwise, type of the value would be determined automatically.',
-        antiClaudeOverload:
-            "If Claude overload happens, Risuai would try to prevent it by continuing with same prompt, making it less likely to happen. works only for streamed responses. this could not work for non-official api endpoints.",
-        triggerScript:
-            'Trigger Script is a custom script that runs when a condition is met. it can be used to modify the chat data, run a command, change variable, and etc. the type depends when it is triggered. it can also be run by buttons, which can be used with {{button::Display::TriggerName}}, or HTML buttons with `risu-trigger="<TriggerName>"` attribute.',
-        autoContinueChat: "If enabled, it will try to continue the chat if it doesn't ends with a punctuation. DONT USE THIS WITH LANGUAGES THAT DOESN'T USE PUNCTUATION.",
-        combineTranslation:
-            "If enabled, text that is one sentence but separated by HTML tags will be combined together and translated, then Modify Display script will be reapplied to the translated output.\nThis helps the translator to make the correct translation.\nIf the UI becomes weird when you enable this option, please turn off the option and report it.",
-        dynamicAssets:
-            "If enabled, if the asset name is not found when processing data, it will try to find the closest asset name by using vector search and replace it with the closest asset name.",
-        dynamicAssetsEditDisplay: "If enabled, the dynamic assets will be applied to the Modify Display stage too. however, this can cause performance issues.",
-        nickname: "Nickname would used be in {{char}} or <char> in chat instead of character's name if it is set.",
-        useRegexLorebook: "If enabled, it will use regex for lorebook search, instead of string matching. it uses /regex/flags format.",
-        customChainOfThought: "Warning: chain of thought toggle is no longer recommended to use. put chain of thought prompt in other prompt entries instead.",
-        customPromptTemplateToggle:
-            "Here you can define your own prompt toggles. use `<toggle variable>=<toggle name>` format, seperated by newline. for example, `cot=Toggle COT`. you can use these toggles in prompt by using `{{getglobalvar::toggle_<toggle variable>}}`. like `{{getglobalvar::toggle_cot}}`.",
-        defaultVariables:
-            "Here you can define your own default variables. use `<variable name>=<variable value>` format, seperated by newline. for example, `name=Risuai`, which then can be used with trigger scripts and variables CBS like `{{getvar::A}}`, `{{setvar::A::B}}` or `{{? $A + 1}}`. if prompt template's default variable and character's default variable has same name, character's default variable will be used.",
-        lowLevelAccess:
-            "If enabled, it will enable access to features that requires high computing powers and executing AI model via triggers in the character. do not enable this unless you really need these features.",
-        triggerLLMPrompt:
-            "A prompt that would be sent to the model. you can use multi turns and roles by using `@@role user`, `@@role system`, `@@role assistant`. for example, \n```\n@@role system\nrespond as hello\n@@role assistant\nhello\n@@role user\nhi\n```",
-        legacyTranslation:
-            "If enabled, it will use the old translation method, which preprocess markdown and quotes before translations instead of postprocessing after translations.",
-        luaHelp:
-            "You can use Lua scripts as a trigger script. you can define onInput, onOutput, onStart functions. onInput is called when user sends a message, onOutput is called when character sends a message, onStart is called when the chat starts. for more information, see the documentation.",
-        claudeCachingExperimental:
-            "Caching in Claude is experimental feature that can reduce the cost of the model, but it can also increase the cost if you use it without reroll. since this is a experimental feature, it can be unstable and behavior can be changed in the future.",
-        urllora:
-            "You can use direct download link of the model file. you can make direct url from google drive like website like https://sites.google.com/site/gdocs2direct/ , or use civitai URL, copy the the AIR (looks like `urn:air:flux1:lora:civitai:180891@776656` or just `civitai:180891@776656`) and paste it.",
-        v2GetAlertSelect: "Options are separated by | (pipe) character.",
-        v2RegexTest: "Returns 1 if the regex matches, 0 if it doesn't match.",
-        v2Calculate:
-            "Evaluates mathematical expressions with support for basic arithmetic (+, -, *, /, %, ^), comparison operators (<, >, <=, >=, =, !=), logical operators (&&, ||, !), parentheses for precedence, and variable substitution using $variableName format. Variables are automatically converted to numbers (defaults to 0 if invalid).",
-        namespace:
-            "Namespace is a unique identifier for the module. it is used to prevent conflicts between modules, and for interaction of presets, other modules and etc. if you are not sure what to put, leave it blank.",
-        moduleIntergration:
-            "You can enable modules by putting the module namespace in the module intergartion sections. if you want to enable multiple modules, you can seperate them by comma. for example, `module1,module2,module3`. this is for advanced users, who wants to vary the use of modules by presets.",
-        customCSS: "Custom CSS for styling. you can also disable/enable it by pressing (Ctrl + .) if something goes wrong.",
-        betaMobileGUI: "If enabled, it will use beta mobile GUI on small (less than 800px) screens. requires refresh.",
-        enableScrollToActiveChar: "If enabled, pressing the hotkey or holding Ctrl while dragging a character will scroll to the currently active character. Folders will be opened automatically if closed.",
-        unrecommended: "This is a unrecommended setting. it is not recommended to use this setting.",
-        jsonSchema:
-            "This is a JSON Schema that will be sent to the AI model if AI model supports JSON Schema.\n\nHowever, since JSON Schema is hard to learn, In Risuai, you can use subset of TypeScript interface instead of JSON Schema. Risuai will convert it in runtime." +
-            'For example, if you want to send a JSON like this:\n\n```js\n{\n  "name": "Risuai", //name must be Risuai,\n  "age": 1, //age must be number,\n  "icon": "slim", //icon must be \'slim\' or \'rounded\'\n  "thoughts": ["Good View!", "Lorem"] //thoughts must be array of strings\n}\n```\n\n' +
-            "You can put this TypeScript interface:\n\n```typescript\ninterface Schema {\n  name: string;\n  age: number;\n  icon: 'slim'|'rounded'\n  thoughts: string[]\n}\n```\n\n" +
-            "Name of the interface doesn't matter. for more information, see the typescript documentation. (https://www.typescriptlang.org/docs/handbook/interfaces.html), and to Check what subset of TypeScript is supported, see the below." +
-            "<details><summary>Supported TypeScript Subset</summary>\n\n" +
-            `Supported types are \`boolean\`, \`number\`, \`string\`, \`Array\`. Advanced typing like unit types, intersection types, union types, optional, literal types, and etc. are not supported except for these cases:\n
-        - Array of primitive types: (ex. \`string[]\`, \`Array<boolean>)\`
-        - Unit types between strings: (ex. \`'slim'|'rounded'\`).
-
-        Properties must be one in a line. if there is multiple properties in a line, it will throw an error. Properties and name of the interface must be only in latin characters, in ASCII range. name of the properties must not be surrounded by quotes or double quotes. Nesting inside the interface is not supported. it is not allowed to put \`{\` or \`}\` in the line that properties are defined. If you want to use more advanced types, use JSON Schema instead.
-        ` +
-            "</details>",
-        strictJsonSchema: "If enabled, it will strictly follow the Provided Schema for JSON on some models. if it is disabled, it may ignore the JSON Schema.",
-        extractJson:
-            'If it is not blank, it will extract specific JSON data from the response. for example, if you want to extract `response.text[0]` in response `{"response": {"text": ["hello"]}}`, you can put `response.text.0`.',
-        translatorNote:
-            "Here, you can add a unique translation prompt for each character. This option only applies when using the Ax. model for translation. To apply it, include `{{slot::tnote}}` in the language settings. It doesn't work in group chats.",
-        groupInnerFormat:
-            "This defines a format that is used in group chat for characters that isn't speaker. if it is not blank, it will use this format instead of the default format. if `Group Other Bot Role` is `assistant`, it will also be applied to the speaker.",
-        chatHTML:
-            "A HTML that would be inserted as each chat.\n\nYou can use CBS and special tags.\n- `<risutextbox>`: a textbox that would be used to render text\n- `<risuicon>`: an icon for user or assistant\n- `<risubuttons>`: icon buttons for chat edit, translations and etc.\n- `<risugeninfo>`: generation information button.",
-        systemContentReplacement: "The prompt format that replaces system prompt if the model doesn't support system prompt.",
-        systemRoleReplacement: "The role that replaces system role if the model doesn't support system role.",
-        summarizationPrompt:
-            "The prompt that is used for summarization. if it is blank, it will use the default prompt. you can also use ChatML formating with {{slot}} for the chat data. The summary output is split by double newlines (\\n\\n) into chunks for similarity search.",
-        translatorPrompt:
-            "The prompt that is used for translation. if it is blank, it will use the default prompt. you can also use ChatML formating with {{slot}} for the dest language, {{solt::content}} for the content, and {{slot::tnote}} for the translator note.",
-        translateBeforeHTMLFormatting:
-            "If enabled, it will translate the text before Regex scripts and HTML formatting. this could make the token lesser but could break the formatting.",
-        autoTranslateCachedOnly: "If enabled with Auto Translation option on, it will automatically translate only the messages that the user has translated previously.",
-        presetChain:
-            "If it is not blank, the preset will be changed and applied randomly every time when user sends a message in the preset list in this input. preset list should be seperated by comma, for example, `preset1,preset2`.",
-        legacyMediaFindings: "If enabled, it will use the old method to find media assets, without using the additional search algorithm.",
-        comfyWorkflow:
-            "Put the API workflow of comfy UI. you can get your API workflow in comfy UI by pressing the 'Workflow > Export (API)' button. you must also put {{risu_prompt}} in you workflow text. the {{risu_prompt}} will be replaced with the prompt provided by the Risu.",
-        automaticCachePoint: "Automatically creates cache point after the chat ends, if the caching point doesn't exist.",
-        experimentalChatCompressionDesc:
-            "Compresses the unused chat data and saves in seperate file. this greatly reduces the size of the chat data, and greatly improves the performance, however its experimental and can be unstable, causing issues in backup feature and more.",
-        promptInfoInsideChatDesc:
-            "When enabled, this stores prompt preset information in the chat metadata. The stored data includes the preset name, active toggles, and the prompt text. This may slightly increase processing time and storage usage.",
-        autoAdjustSchema: "When enabled, it will automatically adjust the JSON schema for Dynamic Output.",
-        dynamicMessages: "When enabled, it will allow the assistant to send multiple messages in a row, instead of one at a time.",
-        dynamicMemory: "When enabled, assistant will make memory notes on response time. additional prompting is required to utilize this feature.",
-        dynamicResponseTiming: "When enabled, it will adjust the response timing dynamically.",
-        dynamicRequest: "When enabled, it will request to model at random timing without waiting for user input.",
-        settingsCloseButtonSize: "Adjusts the size of the close (X) button in the top right corner of the settings window. Default is 24.",
-        showTypingEffect: "When enabled, it will show a typing indicator while the assistant is generating a response.",
-        dynamicOutputPrompt: "When enabled, the schema information will be included in the request.",
-        realmDirectOpen: "If enabled, clicking a character in RisuRealm preview will directly open the character description.",
-        openRouterProviderOrder:
-            "The order of providers to use, the first provider will be used first, if the provider is not available, it will use the next provider. See datail on https://openrouter.ai/docs/guides/routing/provider-selection#ordering-specific-providers",
-        openRouterProviderOnly:
-            "Only use the providers in this list, if all the provider is not available, the request will failed. See detail on https://openrouter.ai/docs/guides/routing/provider-selection#allowing-only-specific-providers",
-        openRouterProviderIgnore:
-            "Ignore the providers in this list, if all the provider is ingored, the request will failed. See detail on https://openrouter.ai/docs/guides/routing/provider-selection#ignoring-providers",
-        additionalPrompt:
-            "Text that gets appended to the Main Prompt when Prompt Preprocess is enabled. Default is 'The assistant must act as {{char}}. user is {{user}}.' This helps set up basic roleplay context.",
-        hideAllImagesDesc: "Hides bot icons, bot image assets, and RisuRealm cover images.",
-        hideMessagePageCountDesc: "Hides the page counter (e.g. 1/3) for regenerated messages and first message greetings. Navigation arrows and the regenerate button remain visible.",
-        embedding:
-            "Embedding model is used for similarity search across multiple features:\n\n" +
-            "- **Long Term Memory**: HypaV2, HypaV3, Hanurai Memory, and SupaMemory (with HypaMemory enabled)\n" +
-            "- **Additional Text**: Matching character additional info based on context\n" +
-            "- **Dynamic Assets**: Finding similar asset names when exact match is not found\n" +
-            "- **Trigger Scripts**: Similarity conditions in trigger scripts\n" +
-            "- **File Attachments**: Searching within PDF/TXT/XML attachments",
-        keepSessionAlive:
-            "Keeps the tab active and prevents the session from expiring due to inactivity in browsers. This may require refresh to take effect.\n\n" +
-            "- **Via Sound**: Plays a silent audio at regular intervals to keep the session alive. This method is known as most compatible and effective in most browsers.\n",
-        reSummarizationPrompt:
-            "The prompt used when merging multiple selected summaries into one via bulk edit. If blank, the default prompt is used. The summary output is split by double newlines (\\n\\n) into chunks for similarity search.",
-        hypaV3MemoryTokensRatio:
-            "The fraction of the max context size allocated to the long-term memory block {{slot}} in the prompt.",
-        hypaV3ExtraSummarizationRatio:
-            "Lowers the threshold at which summarization stops. At 0, summarization stops as soon as tokens fall below the max context. Higher values cause more summarization before stopping.",
-        hypaV3MaxChatsPerSummary:
-            "Maximum number of chat messages to include when creating a single summary.",
-        hypaV3RecentMemoryRatio:
-            "The fraction of memory tokens allocated to recent memory. Automatically filled with the most recently created summaries until the allocated tokens are full.",
-        hypaV3SimilarMemoryRatio:
-            "The fraction of memory tokens allocated to similar memory. Automatically filled with summaries that have the highest similarity scores to recent chats until the allocated tokens are full.",
-        hypaV3RandomMemoryRatio:
-            "Randomly filled from summaries not already selected by other categories.",
-        hypaV3PreserveOrphanedMemory:
-            "If enabled, summaries that reference deleted chat messages will be preserved. If disabled, summaries whose source messages no longer exist are automatically removed.",
-        hypaV3ProcessRegexScript:
-            "If enabled, regex scripts will be applied to the input chat messages when regenerating summaries in the HypaV3 modal.",
-        hypaV3DoNotSummarizeUserMessage:
-            "If enabled, user messages are excluded from the max messages per summary count.",
-        hypaV3EnableSimilarityCorrection:
-            "If enabled, a summary of recent chats is additionally used as a query. Does not work with the experimental HypaMemory V3.",
-        hypaV3UseExperimentalImpl:
-            "Switches to the experimental HypaMemory V3 implementation. Enables rate limit settings and changes the query method.",
-        hypaV3AlwaysToggleOn:
-            "If enabled, the HypaMemory toggle is automatically activated when selecting a character.",
-        hypaV3SummarizationRequestsPerMinute:
-            "Maximum summarization model requests per minute. Only applies when the summarization model is set to Auxiliary Model.",
-        hypaV3SummarizationMaxConcurrent:
-            "Maximum concurrent summarization model requests. Only applies when the summarization model is set to Auxiliary Model.",
-        hypaV3EmbeddingRequestsPerMinute:
-            "Maximum embedding model requests per minute for similarity search.",
-        hypaV3EmbeddingMaxConcurrent:
-            "Maximum concurrent embedding model requests for similarity search.",
-        hypaV3QueryChatCount:
-            "The number of recent chat messages used as the query for similarity search. " +
-            "Higher values use more chat context to determine similarity.",
-        useNodeOnlyScrollButton:
-            "Shows navigation buttons to jump between chat messages while scrolling. Buttons appear on scroll and fade out after 1.5 seconds.",
-    },
+    help: helpEn,
     setup: {
         chooseProvider: "Choose AI Provider",
         openaikey: "OpenAI with API Key (Recommended)",
@@ -674,6 +424,7 @@ export const languageEnglish = {
         inlayExplorer: "Inlay Assets Explorer",
         inlayImageGallery: "Inlay Image Gallery",
         inlayImageGalleryEmptyDesc: "Images attached or generated in chats will appear here",
+        inlayImageList: "Image List",
         inlaySelectAll: "Select All",
         inlayDeleteConfirm: "Are you sure you want to delete {name}?",
         inlayDeleteMultipleConfirm: "Are you sure you want to delete the selected {count} assets?",
@@ -708,6 +459,8 @@ export const languageEnglish = {
         inlayScanDone: "Scanned {count} messages",
     },
     confirm: "Confirm",
+    yes: "Yes",
+    no: "No",
     goback: "Go Back",
     botSettings: "Bot Settings",
     model: "Model",
@@ -725,7 +478,6 @@ export const languageEnglish = {
     frequencyPenalty: "Frequency Penalty",
     presensePenalty: "Presense Penalty",
     advancedSettings: "Advanced Settings",
-    nodeOnlySettings: "NodeOnly Settings",
     advancedSettingsWarn: "Warn: If you don't know what the option does, don't change it!",
     formatingOrder: "Formating Order",
     authorNote: "Author's Note",
@@ -742,6 +494,8 @@ export const languageEnglish = {
     noBias: "No Bias",
     image: "Image",
     name: "Name",
+    characterName: "Character Name",
+    characterInfo: "Character Info",
     folderName: "Folder Name",
     folderRemoveConfirm: "This folder contains lorebooks. Are you sure you want to delete it and all its contents?",
     emotion: "Emotion Name",
@@ -889,6 +643,7 @@ export const languageEnglish = {
     SwipeRegenerate: "Use Swipe for Regeneration",
     instantRemove: "Remove subsequent when message remove",
     instantRemoveConfirm: "Do you want to remove just one message? If you select No, then the message after it will also be remove.",
+    confirmReroll: "Confirm on Message Regeneration",
     textColor: "Text Color",
     classicRisu: "Classic Risu",
     highcontrast: "High-Contrast",
@@ -897,6 +652,12 @@ export const languageEnglish = {
     utilityBot: "Utility Bot",
     ShowLog: "Show Request Logs",
     waifuWidth2: "Waifu Character Size",
+    nodeOnlyStandardChatWidth: "Chat Width",
+    chatWidthStandard: "Standard",
+    chatWidthWide: "Wide",
+    chatWidthFull: "No Limit",
+    customCSSWarning: "NodeOnly's UI structure (HTML/CSS) differs from upstream RisuAI, so existing custom CSS may break the layout or behave unexpectedly. Use only when you know what you are overriding.",
+    customHTMLWarning: "NodeOnly's UI structure (HTML/CSS) differs from upstream RisuAI, so existing custom Chat HTML may not render correctly. Use only when you know what you are overriding.",
     sayNothing: "Input 'say nothing' when no string inputed",
     regexScript: "Regex Script",
     type: "Type",
@@ -936,7 +697,6 @@ export const languageEnglish = {
     user: "User",
     additionalAssets: "Additional Assets",
     editDisplay: "Modify Display",
-    community: "Community",
     textBackgrounds: "Custom Text Screen Color",
     textBorder: "Text Outlines",
     textScreenRound: "Round Text Screen",
@@ -1088,9 +848,6 @@ export const languageEnglish = {
     importPersona: "Import Persona",
     export: "Export",
     import: "Import",
-    supporterThanks: "Supporter Thanks",
-    supporterThanksDesc: "Thank you for your support!",
-    donatorPatreonDesc: "For default, it will not be shown in the list for privacy. if you want to show your nickname, go to Risuai's patreon page and press the link button.",
     useNamePrefix: "Use Name Prefix",
     textAdventureNAI: "Run as Text Adventure",
     appendNameNAI: "Append Name on NAI",
@@ -1113,6 +870,8 @@ export const languageEnglish = {
     translationResponseSize: "Translation Response Size",
     webdeeplwarn: "This option is not recommended for use with web version, as it can cause CORS errors.",
     saveBackupLocal: "Save Backup Locally",
+    saveBackupForUpstream: "Save Backup for Original RisuAI",
+    saveBackupForUpstreamConfirm: "This backup is intended for moving your data to the original RisuAI (web/Tauri). Inlay images are excluded because their entry names use a layout that the original RisuAI cannot import. Other data (database, character assets, cold storage) is included.\n\nFor moving data between NodeOnly installations, use the regular local backup instead.\n\nProceed?",
     loadBackupLocal: "Load Backup Locally",
     topP: "Top P",
     genTimes: "Generation Choices",
@@ -1275,6 +1034,8 @@ export const languageEnglish = {
     hideChatIcon: "Hide Icon UI",
     loadInternalBackup: "Load Internal Backup",
     createCopy: "Create a Copy",
+    copyChatConfirm: "Create a copy of: ",
+    copyChatSuccess: "Chat copied",
     bindPersona: "Bind Persona",
     chatOptions: "Chat Options",
     doYouWantToBindCurrentPersona: "Do you want to bind the current persona to this chat?",
@@ -1319,7 +1080,6 @@ export const languageEnglish = {
     translatorNote: "Translator's Note",
     formatGroupInSingle: "Format Group in Single",
     groupInnerFormat: "Non-Speaker Inner Format",
-    defineCustomGUI: "Define Custom GUI",
     chatHTML: "Chat HTML",
     logShare: "Show Share Log Button",
     preview: "Preview",
@@ -1633,9 +1393,13 @@ export const languageEnglish = {
     replacerPermissionConsent: "Plugin {} is requesting permission to replace content in the chat, which may be used to manipulate the conversation. Do you want to allow this?",
     providerPermissionConsent: "Plugin {} is requesting permission to access the provider, which may allow it to make unauthorized API calls. Do you want to allow this?",
     sendChatConsent: "Plugin {} is requesting permission to send chat messages on your behalf, which will trigger AI responses. Do you want to allow this?",
+    resetPluginPermission: "Reset permission responses",
+    resetPluginPermissionConfirm: "Clear all saved permission responses (granted / denied history) for plugin \"{}\"?\n\nThe plugin will be asked again the next time it requests permission.",
+    resetPluginPermissionDone: "Permission responses for \"{}\" have been reset",
     pluginV2Warning: "Plugin V2 and V2.1 is considered unsafe and will stop working in future versions. **Please do not use these versions of plugins.**. If you are the developer of this plugin, please update to V3 as soon as possible.",
     createFolderOnBranch: "Create Folder on Branch",
     hamburgerButtonBottom: "Move Menu Button to Bottom of Sidebar",
+    hideLeftBarCollapseButton: "Hide Left Bar Collapse Button",
     partialBackupFirstConfirm: "⚠️ WARNING: Partial Local Backup ⚠️\n\nThis backup quickly saves only essential information.\n\nIncluded:\n- Database (chat history, characters, modules, plugins, prompts, settings, etc.)\n- Character profile icons (main images)\n- User icons and custom backgrounds\n- Persona icons\n- Folder images\n- Bot preset images\n\n⚠️ NOT Included:\n- Emotion images\n- Additional character assets\n- VITS voice files\n- All other additional media files\n\nThis backup file does NOT include all character assets!\nIf you need a complete backup, use the regular local backup.\n\nDo you want to continue?",
     partialBackupSecondConfirm: "⚠️⚠️ FINAL WARNING ⚠️⚠️\n\nThis backup saves only character profile images and does NOT save most other assets!\n\nWhat will be saved:\n- Database (chat history, characters, modules, plugins, prompts, settings, etc.)\n- Character profile icons (main images)\n- User icons and custom backgrounds\n- Persona icons\n- Folder images\n- Bot preset images\n\nWhat will NOT be saved:\n- Emotion images\n- Additional character assets\n- VITS voice files\n- All other media files\n\n⚠️ Proceed ONLY if you don't need character assets in your backup file! ⚠️\n\nAre you really sure you want to proceed with partial backup?",
     savePartialLocalBackup: "Save Partial Backup Locally (Excluding Character Assets)",
@@ -1707,6 +1471,7 @@ export const languageEnglish = {
     togglePinUpdateLabel: "Save",
 
     togglePinRemove: "Unbind toggles?",
+    togglePinUnbound: "Toggles unbound.",
     togglePresetNamePrompt: "Enter toggle preset name",
     togglePresetDelete: "── Delete ──",
     togglePresetDeleteConfirm: (name: string) => `Delete toggle preset "${name}"?`,
@@ -1714,8 +1479,7 @@ export const languageEnglish = {
     togglePresetEmpty: "No toggle presets saved.",
     togglePresetRename: "Rename toggle preset",
     togglePresetApplied: (name: string) => `"${name}" preset applied.`,
-    togglePresetFilterAll: "All",
-    togglePresetFilterCurrent: "Current Prompt",
+    togglePresetFilterShowAll: "Show all presets",
     togglePresetNoPromptPreset: "No preset",
     togglePresetEmptyFiltered: "No toggle presets for the current prompt preset.",
     togglePresetApplyConfirm: "Current toggle settings will be overwritten. Apply?",
@@ -1733,6 +1497,11 @@ export const languageEnglish = {
     togglePresetImport: "Import from File",
     togglePresetImported: (name: string) => `Preset "${name}" imported.`,
     togglePresetImportError: "Invalid toggle preset file.",
+    togglePresetSaved: (name: string) => `Preset "${name}" saved.`,
+    togglePresetRenamed: (oldName: string, newName: string) => `Renamed "${oldName}" to "${newName}".`,
+    togglePresetDuplicated: (name: string) => `Duplicated as "${name}".`,
+    togglePresetDeleted: (name: string) => `Preset "${name}" deleted.`,
+    togglePresetExported: (name: string) => `Preset "${name}" exported.`,
     loadouts: "Loadouts",
     loadout: "Loadout",
     longPressToPopupEditor: "Long press to open popup editor",
@@ -1811,6 +1580,237 @@ export const languageEnglish = {
     remoteAccessQrHint: "Scan QR code to connect",
     remoteAccessWarning: "Never share the QR code or link with others. Anyone with the link can freely access your server. If accidentally shared, close the connection and create a new one.",
     remoteAccessInfo: "The link expires when you close remote access or restart the server. A new link is generated each time. The connection stays active even if you close this page or browser.",
+
+    // System page
+    system: "System",
+    systemLogs: "System Logs",
+    systemLogsDesc: "View errors, warnings, and info events captured across this server and connected browsers.",
+    systemLogsEmpty: "No logs yet",
+    systemLogsEmptyDesc: "Errors and warnings will appear here as they occur.",
+    systemLogsEmptyButMore: "No entries loaded yet match your client-side filters. Load more to search further back.",
+    systemLogsSearchPlaceholder: "Search message, source, platform, or client ID",
+    systemLogsLoadMore: "Load more",
+    systemLogsRefresh: "Refresh",
+    systemLogsCopyAll: "Copy visible",
+    systemLogsCopyEntry: "Copy",
+    systemLogsClearAll: "Clear all",
+    systemLogsClearConfirm: "Delete all log entries? This cannot be undone.",
+    systemLogsCopied: "Copied to clipboard",
+    systemLogsFiltered: (shown: number, total: number) => `${shown} of ${total} shown`,
+    systemLogsLevelAll: "All levels",
+    systemLogsLevelError: "Error",
+    systemLogsLevelWarning: "Warning",
+    systemLogsLevelInfo: "Info",
+    systemLogsOriginAll: "All",
+    systemLogsOriginClient: "Client",
+    systemLogsOriginServer: "Server",
+    systemLogsFailedLoad: "Failed to load logs",
+    systemLogsLoading: "Loading...",
+    systemLogsFilters: "Filters",
+    systemLogsFilterLevel: "Level",
+    systemLogsFilterOrigin: "Origin",
+    systemLogsFilterSource: "Source",
+    systemLogsFilterDevice: "Device",
+    systemLogsFilterClear: "Reset filters",
+    systemLogsFilterActive: (count: number) => count === 0 ? '' : `${count} excluded`,
+    systemLogsExplicitOnly: "Explicit logs only",
+    systemLogsExplicitOnlyHint: "Excludes console, uncaught exceptions, framework captures",
+
+    // Storage dashboard
+    systemDashboard: "Dashboard",
+    storageDashboardDesc: "Inspect storage usage, find large items, and reclaim space.",
+    storageRefresh: "Refresh",
+    storageLoading: "Loading...",
+    storageFailedLoad: "Failed to load storage stats",
+
+    // Disk usage section (macOS-style bar)
+    storageDiskUsage: "Storage",
+    storageDiskHeader: (used: number, total: number) =>
+        `${(used / 1024 / 1024 / 1024).toFixed(2)} GB used of ${(total / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    storageDiskHeaderUnknown: "Disk size unavailable",
+    storageDiskOther: "Other (system & apps)",
+    storageDiskFree: "Free",
+    storageDiskRisuTotal: (size: number) => `RisuAI total: ${(size / 1024 / 1024).toFixed(1)} MB`,
+
+    // Per-row labels (shown in the breakdown list with ⓘ explanations)
+    storageRowDbFile: "risuai.db",
+    storageRowDbFileDesc: "The main SQLite database file. Contains every chat, character, asset, and setting.",
+    storageRowWal: "WAL (Write-Ahead Log)",
+    storageRowWalDesc: "Transient transaction log. Saves are written here first, then folded into the main file. Normal during use.",
+    storageRowShm: "SHM (shared memory)",
+    storageRowShmDesc: "SQLite's shared memory index for the WAL. Tiny, transient, regenerated as needed.",
+    storageRowFileBackups: "Disk backups (.bin)",
+    storageRowFileBackupsDesc: "Manual export backups stored on disk under the backups/ folder.",
+    storageRowKvDatabase: "database.bin (live)",
+    storageRowKvDatabaseDesc: "The single BLOB inside risuai.db that holds character metadata, chats, and settings. Subject to the 2 GB single-blob limit.",
+    storageRowKvDbBackups: "In-process DB backups",
+    storageRowKvDbBackupsDesc: "Automatic snapshots of database.bin kept inside risuai.db. Rotated to fit within ~500 MB.",
+    storageRowKvAssets: "Character assets",
+    storageRowKvAssetsDesc: "Character cards, emotion images, additional assets, persona icons, and similar media.",
+    storageRowKvInlay: "Inlay images",
+    storageRowKvInlayDesc: "Images embedded inside chat messages (inlay + thumb + metadata).",
+    storageRowKvRemotes: "Remote chat data",
+    storageRowKvRemotesDesc: "Per-character remote sync cache (remotes/{chaId}.local.bin).",
+    storageRowKvColdStorage: "Cold storage",
+    storageRowKvColdStorageDesc: "Legacy/dormant storage tier. Usually empty.",
+    storageRowKvUncategorized: "Other data",
+    storageRowKvUncategorizedDesc: "Keys not matching any known category. Usually migration leftovers or temporary entries.",
+    storageRowSqliteOverhead: "SQLite overhead (structural)",
+    storageRowSqliteOverheadDesc: "Structural pages SQLite always keeps: indexes, page headers, alignment padding. Not user data and not removable by cleanup (grows naturally with data volume).",
+    storageRowReclaimablePages: "SQLite overhead (reclaimable)",
+    storageRowReclaimablePagesDesc: "Empty pages left behind by deleted data — the reclaimable portion of SQLite overhead. Same value as the yellow segment in the \"Clean up SQLite overhead\" bar below; cleanup reclaims all of them.",
+    storageRowReclaimable: (size: number) =>
+        `${(size / 1024 / 1024).toFixed(1)} MB reclaimable — run Optimize to compact.`,
+    storageInternalOnly: "Show with full disk",
+    storageInternalOnlyHint: "Off shows only RisuAI items; on includes system & free space relative to the disk.",
+
+    // 2 GB BLOB limit (separate section)
+    storageBlobLimit: "2 GB BLOB limit",
+    storageBlobLimitDesc: "SQLite caps a single row's value at ~2 GB. database.bin is one row, so chats and settings combined cannot exceed it. Saves start failing as you approach this limit.",
+    storageBlobThreshold: (used: number, max: number, pct: number) =>
+        `${pct.toFixed(1)}% of 2 GB (${(used / 1024 / 1024 / 1024).toFixed(2)} / ${(max / 1024 / 1024 / 1024).toFixed(2)} GB)`,
+    storageBlobThresholdWarn: "Approaching the 2 GB single-blob limit. Reduce chats or assets.",
+    storageBlobThresholdCrit: "Critical: very close to 2 GB blob limit. Saves may start failing.",
+
+    storageOptimize: "Clean up now",
+    storageOptimizing: "Cleaning up...",
+    storageOptimizeHeader: (dbSize: number, reclaim: number) =>
+        `${(reclaim / 1024 / 1024).toFixed(1)} MB reclaimable of ${(dbSize / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    storageOptimizeBarUsed: "In use",
+    storageOptimizeBarReclaimable: "Reclaimable",
+    storageOptimizeWhat: "When you delete characters, chats, or assets, the database marks the space as empty but does not shrink the file. Cleanup removes that empty space and rewrites the file to make it smaller on disk. Data is not modified.",
+    storageOptimizeWhen: "Run this after a large delete, or when the empty-space portion in the bar above grows. Saves pause briefly during cleanup (usually a few seconds; tens of seconds for very large databases).",
+    storageOptimizeConfirm: "Clean up now? Server saves will pause for a few seconds.",
+    storageOptimizeNeedsSpace: (need: number, free: number) =>
+        `Not enough disk space. Need ~${(need / 1024 / 1024).toFixed(0)} MB, free ${(free / 1024 / 1024).toFixed(0)} MB.`,
+    storageOptimizeDone: (reclaimed: number, ms: number) =>
+        `Reclaimed ${(reclaimed / 1024 / 1024).toFixed(1)} MB in ${(ms / 1000).toFixed(1)}s.`,
+    storageOptimizeFailed: "Cleanup failed",
+
+    storageCleanup: "Clean up SQLite overhead",
+
+    storageBackups: "Backups",
+    storageBackupsManage: "Manage backups",
+    storageBackupsAuto: "Snapshot (DB only)",
+    storageBackupsAutoDesc: "Periodic automatic snapshots for quick recovery. Stored inside risuai.db; oldest are pruned first based on the configured limits. Character assets and inlay images are not included.",
+    storageBackupsManual: "Server backup",
+    storageBackupsManualDesc: "A full backup including character assets and inlay images. Stored directly on the server; the location can be changed.",
+    storageBackupsCount: (count: number, size: number) =>
+        `${count} · ${(size / 1024 / 1024).toFixed(1)} MB`,
+    storageBackupsRange: (oldest: string, newest: string) => `Latest ${newest} · oldest ${oldest}`,
+    storageBackupsEmpty: "None",
+
+    storageCharacters: "Per-character usage",
+    storageCharactersDesc: "Approximate card, media, and chat bytes for each character.",
+    storageCharactersMeasure: "Measure",
+    storageCharactersMeasuring: "Measuring...",
+    storageCharactersDone: (ms: number, count: number) =>
+        `Measured ${count.toLocaleString()} character(s) in ${(ms / 1000).toFixed(1)}s. Chat sizes are approximate.`,
+    storageCharactersCard: "card",
+    storageCharactersImage: "media",
+    storageCharactersChat: "chat",
+    storageCharactersTrashed: "trashed",
+    storageCharactersOrphan: (count: number, size: number) =>
+        `Orphan media (not referenced by any character): ${count} item(s), ${(size / 1024 / 1024).toFixed(1)} MB`,
+    storageCharactersEmpty: "No characters",
+    storageLoadMore: (remaining: number) => `Show more (${remaining.toLocaleString()} left)`,
+    storageShowingOf: (shown: number, total: number) => `Showing ${shown.toLocaleString()} of ${total.toLocaleString()}`,
+
+    storageModules: "Per-module usage",
+    storageModulesDesc: "Body and asset bytes for each module.",
+    storageModulesMeasure: "Measure",
+    storageModulesMeasuring: "Measuring...",
+    storageModulesDone: (ms: number, count: number) =>
+        `Measured ${count.toLocaleString()} module(s) in ${(ms / 1000).toFixed(1)}s.`,
+    storageModulesBody: "body",
+    storageModulesAssets: "assets",
+    storageModulesEmpty: "No modules",
+
+    storageDebug: "Debug info",
+
+    // Data migration (formerly "Account & Files")
+    migration: "Data Migration",
+    migrationDesc: "Move data between RisuAI (or compatible systems) and NodeOnly: import from upstream, or export to upstream-compatible format.",
+    migrationInfoBackupMoved: "Server backups, local backups, and DB snapshots have moved to [System → Backups].",
+    migrationGotoBackupTab: "Open Backups tab",
+    migrationLegacyAccordion: "RisuAI-style backup (legacy)",
+    migrationLegacyDesc: "Helpers for backing up and exporting in upstream RisuAI-compatible formats. Use the Backups tab for everyday backup tasks.",
+    migrationSaveFolderAccordion: "Import save folder from NodeRisu",
+    migrationSaveFolderDesc: "Use this to bring data over from a NodeRisu / RisuAI save folder you used previously.",
+    migrationLoadUpstreamBackup: "Load upstream RisuAI local backup",
+
+    // System → Backups tab
+    systemBackups: "Backups",
+    backupTabDesc: "Manage snapshots, full backups, and local backups in one place.",
+
+    backupSnapshot: "Snapshot (DB only)",
+    backupSnapshotEmpty: "No snapshots.",
+    backupSnapshotRestore: "Restore from this snapshot",
+    backupSnapshotDelete: "Delete snapshot",
+    backupSnapshotDeleteConfirm: (when: string) => `Delete the ${when} snapshot? This cannot be undone.`,
+    backupSnapshotDeleted: "Snapshot deleted.",
+    backupSnapshotDeleteFailed: "Failed to delete snapshot",
+    backupSnapshotLimits: (count: number, bytes: number) =>
+        `Up to ${count} · ${(bytes / 1024 / 1024).toFixed(0)} MB`,
+    backupSnapshotLimitsCurrent: (count: number, bytes: number) =>
+        `Currently ${count} · ${(bytes / 1024 / 1024).toFixed(1)} MB used`,
+    backupSnapshotLimitsChange: "Configure limits",
+    backupSnapshotLimitsDialog: "Snapshot retention limits",
+    backupSnapshotLimitsDialogDesc: "Whichever limit is reached first applies. Snapshots are rotated as new ones are created; reducing a limit trims immediately (the most recent snapshot is always kept regardless).",
+    backupSnapshotLimitsCount: "Max count",
+    backupSnapshotLimitsBytes: "Max size (MB)",
+    backupSnapshotLimitsSuccess: (removed: number) =>
+        removed > 0 ? `Limits applied (${removed} removed)` : "Limits updated.",
+    backupSnapshotLimitsFailed: "Failed to update limits",
+    backupSnapshotLimitsCountRange: (min: number, max: number) =>
+        `Integer between ${min} and ${max}`,
+    backupSnapshotLimitsBytesRange: (minMB: number, maxMB: number) =>
+        `Between ${minMB} and ${maxMB.toLocaleString()} MB`,
+
+    backupServer: "Server backup",
+    backupServerDesc: "A full backup including character assets and inlay images. Stored directly on the server; you can change the location below.",
+    backupServerCreate: "Create backup",
+    backupServerEmpty: "No backups saved.",
+    backupBootReminder: "Boot-time backup reminder",
+    backupBootReminderHint: "From the next boot, ask whether to back up before showing the app.",
+    backupBootReminderToggledOn: "Boot-time backup reminder enabled.",
+    backupBootReminderToggledOff: "Boot-time backup reminder disabled.",
+    backupBootPromptTitle: "Create a server backup now?",
+    backupBootPromptEstimate: (size: number) =>
+        `Estimated backup size: ${(size / 1024 / 1024).toFixed(0)} MB`,
+    backupBootPromptDisk: (free: number, total: number) =>
+        `Disk free: ${(free / 1024 / 1024 / 1024).toFixed(1)} GB / total ${(total / 1024 / 1024 / 1024).toFixed(1)} GB`,
+    backupBootPromptProceed: "Back up now",
+    backupBootPromptSkip: "Skip",
+    storageDiskUsageHighWarning: (pct: number) =>
+        `Disk ${pct.toFixed(0)}% full — cleanup needed.`,
+    backupServerInsufficient: "Insufficient disk space — cannot create a new backup.",
+    updatePopupBackup: "Backup",
+
+    backupServerPath: "Stored at",
+    backupServerPathDefault: "Default location",
+    backupServerPathChange: "Change",
+    backupServerPathDialog: "Change backup location",
+    backupServerPathDialogDesc: "Absolute path to the folder where new backups will be saved. Existing backup files remain at the old location — move them manually if needed.",
+    backupServerPathInputLabel: "Absolute path",
+    backupServerPathSuccess: "Backup location updated.",
+    backupServerPathFailed: "Failed to update backup location",
+
+    backupLocal: "Local backup",
+    backupLocalDesc: "Download a backup to your device or restore from a file on your device.",
+    backupLocalDownload: "Download backup to device",
+    backupLocalDownloadDesc: "Generate a fresh backup from current data and download it directly to your device.",
+    backupLocalRestoreDesc: "Restore from a backup file on your device.",
+
+    relatedGithub: "GitHub",
+    relatedGithubDesc: "View the source code and contribute to the project.",
+    relatedFeedbackForm: "Feedback Form",
+    relatedFeedbackFormDesc: "Submit issues or share suggestions.",
+    relatedContactEmail: "Contact",
+    relatedContactEmailDesc: "Send a direct email to the developer.",
+    relatedArcaLive: "ArcaLive Channel",
+    relatedArcaLiveDesc: "Discuss with other users in the AI chat channel.",
+
 } satisfies I18nTranslation;
 
 type I18nTranslationFunction = (...args: any[]) => string;

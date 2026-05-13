@@ -119,7 +119,7 @@
             onkeydown={handleAddTagKeydown}
           />
           <button
-            class="px-4 py-2 rounded-sm bg-blue-600 hover:bg-blue-700 text-white text-sm transition-colors"
+            class="px-4 py-2 rounded-sm bg-primary hover:bg-primary/90 text-white text-sm transition-colors"
             onclick={handleAddTagEnter}
           >
             {language.add}

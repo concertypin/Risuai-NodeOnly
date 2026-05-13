@@ -51,26 +51,26 @@
 
 {#if model === 'openai3small' || model === 'openai3large' || model === 'ada'}
     <span class="text-textcolor text-lg">OpenAI API Key</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.supaMemoryKey}/>
+    <TextInput marginBottom bind:value={DBState.db.supaMemoryKey}/>
 {/if}
 
 {#if model === "custom"}
     <span class="text-textcolor text-lg">URL</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.hypaCustomSettings.url}/>
+    <TextInput marginBottom bind:value={DBState.db.hypaCustomSettings.url}/>
     <span class="text-textcolor text-lg">Key/Password</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.hypaCustomSettings.key}/>
+    <TextInput marginBottom bind:value={DBState.db.hypaCustomSettings.key}/>
     <span class="text-textcolor text-lg">Request Model</span>
-    <TextInput size="sm" marginBottom bind:value={DBState.db.hypaCustomSettings.model}/>
+    <TextInput marginBottom bind:value={DBState.db.hypaCustomSettings.model}/>
 {/if}
 
 <div class="mb-4"></div>
 
 <span class="text-textcolor text-lg">Query</span>
-<TextInput bind:value={query} size="lg" fullwidth />
+<TextInput bind:value={query} fullwidth />
 
 <span class="text-textcolor text-lg mt-6">Data</span>
 {#each data as item, i}
-    <TextInput bind:value={data[i]} size="lg" fullwidth marginBottom />
+    <TextInput bind:value={data[i]} fullwidth marginBottom />
 {/each}
 <Button styled="outlined" onclick={() => {
     data.push("");

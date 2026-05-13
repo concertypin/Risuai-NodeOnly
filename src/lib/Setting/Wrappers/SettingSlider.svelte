@@ -29,20 +29,27 @@
             }
         });
     });
+
+    let customText = $derived(
+        typeof item.options?.customText === 'function'
+            ? item.options.customText(localValue)
+            : item.options?.customText
+    );
 </script>
 
 <span class="text-textcolor {item.classes ?? ''}">
     {getLabel(item)}
     {#if item.helpKey}<Help key={item.helpKey as any}/>{/if}
 </span>
-<SliderInput 
+<SliderInput
+    className="mt-2"
     marginBottom={true}
-    min={item.options?.min} 
+    min={item.options?.min}
     max={item.options?.max}
     step={item.options?.step}
     fixed={item.options?.fixed}
     multiple={item.options?.multiple}
     disableable={item.options?.disableable}
-    customText={item.options?.customText}
+    {customText}
     bind:value={localValue}
 />

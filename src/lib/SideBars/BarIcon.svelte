@@ -41,7 +41,6 @@
   }
 
   .ico:hover {
-    --tw-bg-opacity: 1;
-    background-color: rgba(16, 185, 129, var(--tw-bg-opacity));
+    background-color: var(--risu-theme-primary);
   }
 </style>

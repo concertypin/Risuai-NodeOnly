@@ -1,8 +1,11 @@
 <script lang="ts">
     import { language } from "src/lang";
+    import SettingPage from "src/lib/UI/GUI/SettingPage.svelte";
     import { forageStorage } from "src/ts/globalApi.svelte";
     import { alertConfirm } from "src/ts/alert";
-    import Button from "src/lib/UI/GUI/Button.svelte";
+    import ShButton from "src/lib/UI/GUI/ShButton.svelte";
+    import ShInput from "src/lib/UI/GUI/ShInput.svelte";
+    import ShAlert from "src/lib/UI/GUI/ShAlert.svelte";
     import { LoaderCircleIcon, CopyIcon, CheckIcon, DownloadIcon, TriangleAlertIcon, InfoIcon } from "@lucide/svelte";
     import QRCode from "qrcode";
 
@@ -103,8 +106,8 @@
     });
 </script>
 
+<SettingPage title={language.remoteAccess}>
 <div class="flex flex-col gap-4">
-    <h2 class="mb-2 text-2xl font-bold mt-2">{language.remoteAccess}</h2>
     <p class="text-sm text-textcolor2">{language.remoteAccessDesc}</p>
 
     {#if status === 'loading'}
@@ -116,7 +119,7 @@
         <div class="text-sm text-yellow-400">{language.remoteAccessDisabled}</div>
 
     {:else if status === 'off'}
-        <Button onclick={startTunnel} className="mt-2">{language.remoteAccessOpen}</Button>
+        <ShButton onclick={startTunnel} className="mt-2 self-start">{language.remoteAccessOpen}</ShButton>
 
     {:else if status === 'downloading'}
         <div class="flex items-center gap-3 py-4 text-textcolor2">
@@ -138,34 +141,32 @@
             {/if}
 
             <div class="flex items-center gap-2 w-full max-w-md">
-                <input
+                <ShInput
                     type="text"
                     readonly
-                    value={tunnelUrl}
-                    class="flex-1 bg-bgcolor border border-darkborderc rounded-md px-3 py-2 text-sm text-textcolor select-all"
+                    value={tunnelUrl ?? ''}
+                    className="flex-1 select-all"
                 />
-                <Button size="md" onclick={copyUrl}>
+                <ShButton size="icon" onclick={copyUrl}>
                     {#if copied}
                         <CheckIcon size={16} />
                     {:else}
                         <CopyIcon size={16} />
                     {/if}
-                </Button>
+                </ShButton>
             </div>
 
-            <!-- Warning -->
-            <div class="flex gap-2 bg-red-950/40 border border-red-900/50 rounded-lg p-3 w-full max-w-md">
-                <TriangleAlertIcon size={18} class="text-red-400 shrink-0 mt-0.5" />
-                <p class="text-sm text-red-300/90 leading-relaxed">{language.remoteAccessWarning}</p>
-            </div>
+            <ShAlert variant="destructive" className="w-full max-w-md">
+                {#snippet icon()}<TriangleAlertIcon />{/snippet}
+                {language.remoteAccessWarning}
+            </ShAlert>
 
-            <!-- Info -->
-            <div class="flex gap-2 bg-blue-950/30 border border-blue-900/40 rounded-lg p-3 w-full max-w-md">
-                <InfoIcon size={18} class="text-blue-400 shrink-0 mt-0.5" />
-                <p class="text-sm text-blue-300/80 leading-relaxed">{language.remoteAccessInfo}</p>
-            </div>
+            <ShAlert variant="info" className="w-full max-w-md">
+                {#snippet icon()}<InfoIcon />{/snippet}
+                {language.remoteAccessInfo}
+            </ShAlert>
 
-            <Button styled="danger" onclick={stopTunnel} className="mt-2">{language.remoteAccessClose}</Button>
+            <ShButton variant="destructive" onclick={stopTunnel} className="mt-2">{language.remoteAccessClose}</ShButton>
         </div>
 
     {:else if status === 'error'}
@@ -173,7 +174,8 @@
             <div class="text-sm text-red-400">
                 {language.remoteAccessError}{tunnelError ? `: ${tunnelError}` : ''}
             </div>
-            <Button size="sm" onclick={startTunnel} className="mt-1">{language.remoteAccessRetry}</Button>
+            <ShButton size="sm" onclick={startTunnel} className="mt-1 self-start">{language.remoteAccessRetry}</ShButton>
         </div>
     {/if}
 </div>
+</SettingPage>

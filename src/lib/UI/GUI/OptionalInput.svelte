@@ -7,20 +7,22 @@
         numberMode?: boolean;
         boolMode?: boolean;
         marginBottom?: boolean;
+        className?: string;
     }
 
     let {
         value = $bindable(),
         numberMode = false,
         boolMode = false,
-        marginBottom = false
+        marginBottom = false,
+        className,
     }: Props = $props();
     const valToggle = () => {
             value = !value
     }
 </script>
 
-<div class="flex items-center justify-center" class:mb-4={marginBottom}>
+<div class="flex items-center justify-center {className ?? ''}" class:mb-4={marginBottom}>
     <div class="flex justify-center items-center border-darkborderc rounded-l-md rounded-t-md rounded-b-md border h-full">
         <CheckInput hiddenName check={!(value === null || value === undefined)} onChange={() => {
             if(value === null || value === undefined){

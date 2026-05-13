@@ -109,11 +109,11 @@ interface Props {
     {#if open}
         <div class="seperator p-2">
             <span class="text-textcolor mt-6">{language.name}</span>
-            <TextInput size="sm" bind:value={value.comment} onchange={(e) => {
+            <TextInput className="mt-2" bind:value={value.comment} onchange={(e) => {
                 $ReloadGUIPointer += 1
             }} />
             <span class="text-textcolor mt-4">Modification Type</span>
-            <SelectInput bind:value={value.type} onchange={(e) => {
+            <SelectInput className="mt-2 mb-4" bind:value={value.type} onchange={(e) => {
                 $ReloadGUIPointer += 1
             }}>
                 <OptionInput value="editinput">{language.editInput}</OptionInput>
@@ -124,14 +124,14 @@ interface Props {
                 <OptionInput value="disabled">{language.disabled}</OptionInput>
             </SelectInput>
             <span class="text-textcolor mt-6">IN:</span>
-            <TextInput size="sm" bind:value={value.in} />
+            <TextInput className="mt-2" bind:value={value.in} />
             <span class="text-textcolor mt-6">OUT:</span>
-            <TextAreaInput highlight autocomplete="off" size="sm" bind:value={value.out} onInput={(e) => {
+            <TextAreaInput className="mt-2 mb-4" highlight autocomplete="off" bind:value={value.out} onInput={(e) => {
                 $ReloadGUIPointer += 1
             }} />
             {#if value.ableFlag}
                 <!-- <span class="text-textcolor mt-6">FLAG:</span>
-                <TextInput size="sm" bind:value={value.flag} /> -->
+                <TextInput bind:value={value.flag} /> -->
                 <Accordion styled name="FLAGS">
                     <span class="text-textcolor mt-3">Normal Flag</span>
                     <div class="grid w-full grid-cols-2 rounded-md border border-darkborderc">
@@ -151,7 +151,7 @@ interface Props {
                     </div>
 
                     <span class="text-textcolor mt-3">Order Flag</span>
-                    <NumberInput value={getOrder(value.flag)} onChange={(e)=>{
+                    <NumberInput className="mt-2" value={getOrder(value.flag)} onChange={(e)=>{
                         changeOrder(parseInt(e.currentTarget.value))
                     }} />
                     

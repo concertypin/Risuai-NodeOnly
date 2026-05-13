@@ -8,7 +8,7 @@
     import Toggles from '../SideBars/Toggles.svelte';
     import { getCurrentCharacter } from 'src/ts/storage/database.svelte';
 
-    let languageMode = $state('markdown');
+    let languageMode = $state(popUpEditorStore.language || 'markdown');
     let previewing = $state(false);
     let tokens = $state(0);
     let MonacoComponent: (typeof MonacoEditorType)|null = $state(null)
@@ -59,21 +59,25 @@
          <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold">Popup Editor</h2>
             <div class="flex items-center gap-2">
-                {#if !previewing}
-                    <select
-                        bind:value={languageMode}
-                        class="bg-bgcolor border-none rounded px-2 py-1 text-sm"
+                {#if ['markdown', 'cbs'].includes(languageMode)}
+                    {#if !previewing}
+                        <select
+                            bind:value={languageMode}
+                            class="bg-bgcolor border-none rounded px-2 py-1 text-sm"
+                        >
+                            <option value="markdown">Markdown</option>
+                            <option value="cbs" disabled>CBS</option>
+                        </select>
+                    {/if}
+                    <button
+                        class="bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
+                        onclick={() => (previewing = !previewing)}
                     >
-                        <option value="markdown">Markdown</option>
-                        <option value="cbs" disabled>CBS</option>
-                    </select>
+                        {previewing ? language.edit : language.preview}
+                    </button>
+                {:else}
+                    <span class="bg-bgcolor border-none rounded px-2 py-1 text-sm">{languageMode}</span>
                 {/if}
-                <button
-                    class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                    onclick={() => (previewing = !previewing)}
-                >
-                    {previewing ? language.edit : language.preview}
-                </button>
                 <button
                     class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
                     onclick={() => (popUpEditorStore.open = false)}
@@ -92,7 +96,7 @@
 
                         <div class="text-sm p-4 text-gray-500 flex overflow-x-auto">
                             <button class={{
-                                "bg-blue-500 text-white hover:bg-blue-600": showToggles,
+                                "bg-primary text-white hover:bg-primary/90": showToggles,
                                 "bg-gray-500 text-white hover:bg-gray-600": !showToggles,
                                 "px-3 py-1 rounded transition": true,
                             }} onclick={() => {

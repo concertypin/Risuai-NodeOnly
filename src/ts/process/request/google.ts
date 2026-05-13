@@ -6,10 +6,10 @@ import { v4 } from "uuid"
 import { saveInlayedSignature, setInlayAsset, writeInlayImage, type InlaySignature } from "../files/inlays"
 import { extractJSON, getGeneralJSONSchema } from "../templates/jsonSchema"
 import { callTool, decodeToolCall, encodeToolCall } from "../mcp/mcp"
-import { alertError } from "src/ts/alert";
+import { notifyError } from "src/ts/alert";
 import { addFetchLog } from "src/ts/globalApi.svelte"
 import type { RequestDataArgumentExtended, requestDataResponse, StreamResponseChunk } from './request'
-import { applyParameters, setObjectValue, type LLMParameter } from './shared'
+import { applyAdditionalParameters, applyParameters, getAdditionalParameters, type LLMParameter } from './shared'
 import { bodyIntercepterStore } from "src/ts/stores.svelte"
 
 type GeminiFunctionCall = {
@@ -39,6 +39,20 @@ interface GeminiPart{
 interface GeminiChat {
     role: "user"|"model"|"function"
     parts:|GeminiPart[]
+}
+
+// Exponential backoff between Gemini retries (1s, 2s, 4s, 8s cap),
+// resolves immediately when the abort signal fires so stop() can break out.
+function geminiRetryBackoff(failedAttempt: number, signal?: AbortSignal): Promise<void> {
+    const ms = Math.min(1000 * (2 ** (failedAttempt - 1)), 8000)
+    return new Promise(resolve => {
+        if (signal?.aborted) return resolve()
+        const timer = setTimeout(resolve, ms)
+        signal?.addEventListener('abort', () => {
+            clearTimeout(timer)
+            resolve()
+        }, { once: true })
+    })
 }
 
 export async function requestGoogleCloudVertex(arg:RequestDataArgumentExtended):Promise<requestDataResponse> {
@@ -523,7 +537,7 @@ export async function requestGoogleCloudVertex(arg:RequestDataArgumentExtended):
     if(arg.modelInfo.format === LLMFormat.VertexAIGemini){
         if(db.vertexAccessTokenExpires < Date.now()){
             if (!db.vertexClientEmail || !db.vertexPrivateKey) {
-                alertError("Vertex AI authentication information is missing or incomplete. Please check your settings.");
+                notifyError("Vertex AI authentication information is missing or incomplete. Please check your settings.");
                 return { type: 'fail', result: "Vertex AI authentication information is missing or incomplete. Please check your settings." };
             }
             headers['Authorization'] = "Bearer " + await generateToken(db.vertexClientEmail, db.vertexPrivateKey)
@@ -579,73 +593,7 @@ export async function requestGoogleCloudVertex(arg:RequestDataArgumentExtended):
     }
 
     if(arg.aiModel === 'reverse_proxy' || arg.aiModel?.startsWith('xcustom:::')){
-        let additionalParams: [string, string][] = []
-
-        if(arg.aiModel === 'reverse_proxy'){
-            additionalParams = db.additionalParams || []
-        }
-        else if(arg.aiModel.startsWith('xcustom:::')){
-            const found = db.customModels.find(m => m.id === arg.aiModel)
-            const params = found?.params
-            if(params){
-                const lines = params.split('\n')
-                for(const line of lines){
-                    const split = line.split('=')
-                    if(split.length >= 2){
-                        additionalParams.push([split[0], split.slice(1).join('=')])
-                    }
-                }
-            }
-        }
-
-        for(let i=0;i<additionalParams.length;i++){
-            let key = additionalParams[i][0]
-            let value = additionalParams[i][1]
-
-            if(!key || !value){
-                continue
-            }
-
-            if(value === '{{none}}'){
-                if(key.startsWith('header::')){
-                    key = key.replace('header::', '')
-                    delete headers[key]
-                }
-                else{
-                    delete body[key]
-                }
-                continue
-            }
-
-            if(key.startsWith('header::')){
-                key = key.replace('header::', '')
-                headers[key] = value
-            }
-            else if(value.startsWith('json::')){
-                value = value.replace('json::', '')
-                try {
-                    body[key] = JSON.parse(value)
-                } catch (error) {}
-            }
-            else if((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))){
-                body = setObjectValue(body, key, value.slice(1, -1))
-            }
-            else if(value === 'true' || value === 'false'){
-                body = setObjectValue(body, key, value === 'true')
-            }
-            else if(value === 'null'){
-                body = setObjectValue(body, key, null)
-            }
-            else{
-                const num = Number(value)
-                if(isNaN(num)){
-                    body = setObjectValue(body, key, value)
-                }
-                else{
-                    body = setObjectValue(body, key, num)
-                }
-            }
-        }
+        body = applyAdditionalParameters(body, headers, getAdditionalParameters(arg.aiModel))
     }
 
     if(arg.previewBody){
@@ -986,13 +934,17 @@ async function requestGoogle(url:string, body:any, headers:{[key:string]:string}
 
         body.contents = chat
 
-        // Send the next request recursively 
+        // Send the next request recursively
         let resRec
         let attempt = 0
         do {
             attempt++
+            if (attempt > 1) {
+                await geminiRetryBackoff(attempt - 1, arg.abortSignal)
+                if (arg?.abortSignal?.aborted) break
+            }
             resRec = await requestGoogle(url, body, headers, arg)
-            
+
             if (resRec.type != 'fail') {
                 break
             }
@@ -1003,7 +955,7 @@ async function requestGoogle(url:string, body:any, headers:{[key:string]:string}
 
         // If the next request fails, only the responses so far are returned
         if(resRec.type === 'fail'){
-            alertError(`Failed to fetch model response after tool execution`)
+            notifyError(`Failed to fetch model response after tool execution`)
             return {
                 type: 'success',
                 result: result
@@ -1302,9 +1254,13 @@ function wrapToolStream(
                         let resRec
                         let attempt = 0
                         let errorFlag = true
-                        
+
                         do {
                             attempt++
+                            if (attempt > 1) {
+                                await geminiRetryBackoff(attempt - 1, arg.abortSignal)
+                                if (arg?.abortSignal?.aborted) break
+                            }
                             resRec = await fetchNative(url, {
                                 headers: headers,
                                 body: JSON.stringify(body),
@@ -1313,7 +1269,7 @@ function wrapToolStream(
                                 signal: arg.abortSignal,
                                 interceptor: 'gemini_tool'
                             })
-                        
+
                             if(resRec.status == 200){
                                 addFetchLog({
                                     body: body,
@@ -1329,7 +1285,7 @@ function wrapToolStream(
                         } while (attempt <= db.requestRetrys) // Retry up to db.requestRetrys times
 
                         if(errorFlag){
-                            alertError(`Failed to fetch model response after tool execution`)
+                            notifyError(`Failed to fetch model response after tool execution`)
                             return controller.close()
                         }
 

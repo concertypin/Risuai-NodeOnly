@@ -218,9 +218,9 @@
 
     
         <span class="mt-6">{language.name}</span>
-        <TextInput bind:value={promptItem.name} />
+        <TextInput className="mt-2" bind:value={promptItem.name} />
         <span class="mt-2">{language.type} </span>
-        <SelectInput bind:value={promptItem.type} onchange={() => {
+        <SelectInput className="mt-2 mb-4" bind:value={promptItem.type} onchange={() => {
             if(promptItem.type === 'plain' || promptItem.type === 'jailbreak' || promptItem.type === 'cot'){
                 promptItem.text = ""
                 promptItem.role = "system"
@@ -252,30 +252,30 @@
         </SelectInput>
 
         {#if promptItem.type === 'plain' || promptItem.type === 'jailbreak' || promptItem.type === 'cot'}
-            <span>{language.specialType}</span>
-            <SelectInput bind:value={promptItem.type2}>
+            <span class="mt-2">{language.specialType}</span>
+            <SelectInput className="mt-2 mb-4" bind:value={promptItem.type2}>
                 <OptionInput value="normal">{language.noSpecialType}</OptionInput>
                 <OptionInput value="main">{language.mainPrompt}</OptionInput>
                 <OptionInput value="globalNote">{language.globalNote}</OptionInput>
             </SelectInput>
-            <span>{language.prompt}</span>
-            <TextAreaInput highlight bind:value={promptItem.text} />
-            <span>{language.role}</span>
-            <SelectInput bind:value={promptItem.role}>
+            <span class="mt-2">{language.prompt}</span>
+            <TextAreaInput className="mt-2 mb-4" highlight bind:value={promptItem.text} />
+            <span class="mt-2">{language.role}</span>
+            <SelectInput className="mt-2 mb-4" bind:value={promptItem.role}>
                 <OptionInput value="user">{language.user}</OptionInput>
                 <OptionInput value="bot">{language.character}</OptionInput>
                 <OptionInput value="system">{language.systemPrompt}</OptionInput>
             </SelectInput>
         {/if}
         {#if promptItem.type === 'chatML'}
-            <span>{language.prompt}</span>
-            <TextAreaInput highlight bind:value={promptItem.text} />
+            <span class="mt-2">{language.prompt}</span>
+            <TextAreaInput className="mt-2 mb-4" highlight bind:value={promptItem.text} />
         {/if}
         {#if promptItem.type === 'cache'}
-            <span>{language.depth}</span>
-            <NumberInput bind:value={promptItem.depth} />
-            <span>{language.role}</span>
-            <SelectInput bind:value={promptItem.role}>
+            <span class="mt-2">{language.depth}</span>
+            <NumberInput className="mt-2" bind:value={promptItem.depth} />
+            <span class="mt-2">{language.role}</span>
+            <SelectInput className="mt-2 mb-4" bind:value={promptItem.role}>
                 <OptionInput value="all">{language.all}</OptionInput>
                 <OptionInput value="user">{language.user}</OptionInput>
                 <OptionInput value="bot">{language.character}</OptionInput>
@@ -284,18 +284,18 @@
         {/if}
         {#if promptItem.type === 'chat'}
             {#if promptItem.rangeStart !== -1000}
-                <span>{language.rangeStart}</span>
-                <NumberInput bind:value={promptItem.rangeStart} />
-                <span>{language.rangeEnd}</span>
+                <span class="mt-2">{language.rangeStart}</span>
+                <NumberInput className="mt-2" bind:value={promptItem.rangeStart} />
+                <span class="mt-2">{language.rangeEnd}</span>
                 {#if promptItem.rangeEnd === 'end'}
-                    <NumberInput value={0} marginBottom  disabled/>
+                    <NumberInput className="mt-2" value={0} marginBottom  disabled/>
                     <CheckInput name={language.untilChatEnd} check={true} onChange={() => {
                         if(promptItem.type === 'chat'){
                             promptItem.rangeEnd = 0
                         }
                     }} />
                 {:else}
-                    <NumberInput bind:value={promptItem.rangeEnd} marginBottom />
+                    <NumberInput className="mt-2" bind:value={promptItem.rangeEnd} marginBottom />
                     <CheckInput name={language.untilChatEnd} check={false} onChange={() => {
                         if(promptItem.type === 'chat'){
                             promptItem.rangeEnd = 'end'
@@ -309,8 +309,8 @@
             <CheckInput name={language.advanced} check={promptItem.rangeStart !== -1000} onChange={chatPromptChange} className="my-2"/>
         {/if}
         {#if promptItem.type === 'authornote'}
-            <span>{language.defaultPrompt}</span>
-            <TextInput bind:value={promptItem.defaultText} />
+            <span class="mt-2">{language.defaultPrompt}</span>
+            <TextInput className="mt-2" bind:value={promptItem.defaultText} />
         {/if}
         {#if promptItem.type === 'persona' || promptItem.type === 'description' || promptItem.type === 'authornote' || promptItem.type === 'memory'}
             {#if !promptItem.innerFormat}
@@ -320,8 +320,8 @@
                     }
                 }} />
             {:else}
-                <span>{language.innerFormat}</span>
-                <TextAreaInput highlight bind:value={promptItem.innerFormat}/>
+                <span class="mt-2">{language.innerFormat}</span>
+                <TextAreaInput className="mt-2 mb-4" highlight bind:value={promptItem.innerFormat}/>
                 <CheckInput name={language.customInnerFormat} check={true} className="mt-2" onChange={() => {
                     if(promptItem.type === 'persona' || promptItem.type === 'description' || promptItem.type === 'authornote' || promptItem.type === 'memory'){
                         promptItem.innerFormat = null

@@ -36,7 +36,12 @@ export type SettingType =
     | 'custom';    // Custom component from registry
 
 /**
- * Select option for dropdown
+ * Select option for dropdown.
+ *
+ * Convention: the first entry in `selectOptions` is treated as the default
+ * fallback when the stored DB value is no longer present in the option list
+ * (e.g. an option was removed or hidden by `condition`). Place the safest /
+ * most neutral option first.
  */
 export interface SelectOption {
     value: string;
@@ -69,8 +74,9 @@ export interface SettingOptions {
     step?: number;
     fixed?: number;         // Decimal places for slider
     disableable?: boolean;  // Allow -1 to disable
-    customText?: string;    // Custom display text for slider
+    customText?: string | ((value: number) => string); // Custom display text for slider
     multiple?: number;      // Multiplier for display value
+    nullable?: boolean;     // Allow null for color inputs
     
     // select
     selectOptions?: SelectOption[];

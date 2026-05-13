@@ -1,7 +1,7 @@
 {
   "name": "risuai-nodeonly",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.5.0",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -11,6 +11,7 @@
     "build": "vite build --sourcemap",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check:help": "node scripts/check-help-keys.mjs",
     "test": "vitest run",
     "test:compat": "vitest run --config vitest.config.compat.ts",
     "runserver": "node server/node/server.cjs",
@@ -37,7 +38,9 @@
     "acorn-walk": "^8.3.4",
     "astring": "^1.9.0",
     "better-sqlite3": "^11.10.0",
+    "bits-ui": "^2.17.3",
     "buffer": "^6.0.3",
+    "clsx": "^2.1.1",
     "codemirror": "^6.0.2",
     "compression": "^1.8.1",
     "compression-streams-polyfill": "^0.1.7",
@@ -72,8 +75,11 @@
     "sucrase": "^3.35.1",
     "sv": "^0.11.0",
     "svelte-awesome-color-picker": "^4.1.0",
+    "svelte-sonner": "^1.1.0",
+    "tailwind-merge": "^3.5.0",
     "three": "^0.154.0",
     "tippy.js": "^6.3.7",
+    "ua-parser-js": "^2.0.9",
     "uuid": "^9.0.1",
     "wasmoon": "^1.16.0",
     "wavefile": "^11.0.0",
@@ -114,6 +120,15 @@
     "vitest": "^4.1.0"
   },
   "pnpm": {
-    "neverBuiltDependencies": []
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "better-sqlite3",
+      "core-js",
+      "esbuild",
+      "msgpackr-extract",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
+    ]
   }
 }

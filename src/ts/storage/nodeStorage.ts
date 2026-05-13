@@ -6,7 +6,7 @@
 // Server counterpart: server/node/server.cjs (createServerJwt, checkAuth,
 // /api/login, /api/token/refresh)
 import { language } from "src/lang"
-import { alertError, alertInput, waitAlert } from "../alert"
+import { alertInput, waitAlert, notifyError } from "../alert"
 import { decodeRisuSave, encodeRisuSaveLegacy } from "./risuSave"
 import { normalizeChat } from "./database.svelte"
 
@@ -27,6 +27,23 @@ export class HttpError extends Error {
         this.name = 'HttpError'
         this.status = status
     }
+}
+
+// Warning the server attaches to /api/patch responses when the most recent
+// debounced persist failed (Stage 1 visibility — see issues.md).
+export interface PersistWarning {
+    timestamp: number
+    message: string
+    attemptedSize: number | null
+    source: string
+}
+
+export interface PatchItemResult {
+    success: boolean
+    etag?: string
+    persistWarning?: PersistWarning
+    /** Set when the server's chat-internal-field guard rejected the patch. */
+    chatGuardRejected?: boolean
 }
 
 export class NodeStorage{
@@ -111,7 +128,7 @@ export class NodeStorage{
         })
 
         if(response.status === 429){
-            alertError(`Too many attempts. Please wait and try again later.`)
+            notifyError(`Too many attempts. Please wait and try again later.`)
             await waitAlert()
             throw new Error('Too many login attempts')
         }
@@ -331,7 +348,7 @@ export class NodeStorage{
         this._lastDbEtag = etag
     }
 
-    async patchItem(key: string, patchData: { patch: any[], expectedHash: string }): Promise<{success: boolean, etag?: string}> {
+    async patchItem(key: string, patchData: { patch: any[], expectedHash: string }): Promise<PatchItemResult> {
         const da = await this.authFetch('/api/patch', {
             method: "POST",
             body: JSON.stringify(patchData),
@@ -347,7 +364,13 @@ export class NodeStorage{
             if (key === 'database/database.bin' && currentEtag) {
                 this._lastDbEtag = currentEtag
             }
-            return { success: false, etag: currentEtag }
+            // Server signals chat-guard rejection via explicit fields. The
+            // error string fallback is kept for forward-compat with deployed
+            // servers that haven't shipped the explicit fields yet.
+            const rejectedByChatGuard = data.chatGuardRejected === true
+                || data.code === 'CHAT_GUARD_REJECTED'
+                || (typeof data.error === 'string' && data.error.includes('chat-internal field ops'))
+            return { success: false, etag: currentEtag, chatGuardRejected: rejectedByChatGuard }
         }
         if (da.status < 200 || da.status >= 300) {
             return { success: false }
@@ -360,7 +383,8 @@ export class NodeStorage{
         if (key === 'database/database.bin' && nextEtag) {
             this._lastDbEtag = nextEtag
         }
-        return { success: true, etag: nextEtag }
+        const persistWarning = data.persistWarning as PersistWarning | undefined
+        return { success: true, etag: nextEtag, persistWarning }
     }
 
     // ── Bulk asset operations (3-2-B) ──────────────────────────────────────────
@@ -415,8 +439,11 @@ export class NodeStorage{
         }
     }
 
-    async exportBackup(): Promise<Response> {
-        const da = await this.authFetch('/api/backup/export')
+    async exportBackup(opts?: { target?: 'upstream' }): Promise<Response> {
+        const url = opts?.target === 'upstream'
+            ? '/api/backup/export?target=upstream'
+            : '/api/backup/export'
+        const da = await this.authFetch(url)
         if (da.status < 200 || da.status >= 300) throw `backup export error: ${da.status}`
         return da
     }

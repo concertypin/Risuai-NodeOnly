@@ -1,7 +1,7 @@
 import { get } from "svelte/store"
 import { getDatabase, type character } from "../storage/database.svelte"
 import { requestChatData } from "./request/request"
-import { alertError } from "../alert"
+import { alertError, notifyError } from "../alert"
 import { fetchNative, globalFetch, readImage } from "../globalApi.svelte"
 import { CharEmotion } from "../stores.svelte"
 import type { OpenAIChat } from "./index.svelte"
@@ -12,7 +12,7 @@ export async function stableDiff(currentChar:character,prompt:string){
     let db = getDatabase()
 
     if(db.sdProvider === ''){
-        alertError("Stable diffusion is not set in settings.")
+        notifyError("Stable diffusion is not set in settings.")
         return false
     }
 
@@ -43,11 +43,11 @@ export async function stableDiff(currentChar:character,prompt:string){
 
 
     if(rq.type === 'fail'){
-        alertError(rq.result)
+        notifyError(rq.result)
         return false
     }
     if(rq.type === 'streaming' || rq.type === 'multiline'){
-        alertError('Unexpected response type')
+        notifyError('Unexpected response type')
         return false
     }
 
@@ -94,7 +94,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                     return `data:image/png;base64,${da.data.images[0]}`
                 }
                 else{
-                    alertError(JSON.stringify(da.data))
+                    notifyError(JSON.stringify(da.data))
                     return ''
                 }
             }
@@ -107,7 +107,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                 CharEmotion.set(charemotions)
             }
             else{
-                alertError(JSON.stringify(da.data))
+                notifyError(JSON.stringify(da.data))
                 return false   
             }
 
@@ -115,7 +115,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
 
 
         } catch (error) {
-            alertError(error)
+            notifyError(error)
             return false   
         }
     }
@@ -361,7 +361,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                     return img
                 }
                 else{
-                    alertError(Buffer.from(da.data).toString())
+                    notifyError(Buffer.from(da.data).toString())
                     return ''
                 }
             }
@@ -374,7 +374,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                 CharEmotion.set(charemotions)
             }
             else{
-                alertError(Buffer.from(da.data).toString())
+                notifyError(Buffer.from(da.data).toString())
                 return false   
             }
 
@@ -382,7 +382,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
 
 
         } catch (error) {
-            alertError(error)
+            notifyError(error)
             return false   
         }
     }
@@ -405,7 +405,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
         if(returnSdData === 'inlay'){
             let res = da?.data?.data?.[0]?.b64_json
             if(!res){
-                alertError(JSON.stringify(da.data))
+                notifyError(JSON.stringify(da.data))
                 return ''
             }
             return `data:image/png;base64,${res}`
@@ -415,7 +415,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
             let charemotions = get(CharEmotion)
             let img = da?.data?.data?.[0]?.b64_json
             if(!img){
-                alertError(JSON.stringify(da.data))
+                notifyError(JSON.stringify(da.data))
                 return false
             }
             img = `data:image/png;base64,${img}`
@@ -424,7 +424,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
             CharEmotion.set(charemotions)
         }
         else{
-            alertError(Buffer.from(da.data).toString())
+            notifyError(Buffer.from(da.data).toString())
             return false   
         }
         return returnSdData
@@ -458,12 +458,12 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
 
         const res = await da.arrayBuffer()
         if(!da.ok){
-            alertError(Buffer.from(res).toString())
+            notifyError(Buffer.from(res).toString())
             return false
         }
 
         if((da.headers["content-type"] ?? "").startsWith('application/json')){
-            alertError(Buffer.from(res).toString())
+            notifyError(Buffer.from(res).toString())
             return false
         }
 
@@ -577,7 +577,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
 
             return returnSdData
         } catch (error) {
-            alertError(error)
+            notifyError(error)
             return false
         }
     }
@@ -621,13 +621,13 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
         })
 
         if(!res.ok){
-            alertError(JSON.stringify(res.data))
+            notifyError(JSON.stringify(res.data))
             return false
         }
 
         let image = res.data?.images?.[0]?.url
         if(!image){
-            alertError(JSON.stringify(res.data))
+            notifyError(JSON.stringify(res.data))
             return false
         }
 
@@ -676,14 +676,14 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
         })
 
         if(!res.ok) {
-            alertError(JSON.stringify(res.data))
+            notifyError(JSON.stringify(res.data))
             return false
         }
 
         const img64 = res.data?.predictions?.[0]?.bytesBase64Encoded
 
         if(!img64) {
-            alertError(JSON.stringify(res.data))
+            notifyError(JSON.stringify(res.data))
             return false
         }
         
@@ -693,7 +693,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
     if(db.sdProvider === 'openai-compat'){
         const config = db.openaiCompatImage
         if(!config.url){
-            alertError("OpenAI Compatible API URL is not set")
+            notifyError("OpenAI Compatible API URL is not set")
             return false
         }
 
@@ -724,7 +724,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
         if(returnSdData === 'inlay'){
             let res = da?.data?.data?.[0]?.b64_json
             if(!res){
-                alertError(JSON.stringify(da.data))
+                notifyError(JSON.stringify(da.data))
                 return ''
             }
             return `data:image/png;base64,${res}`
@@ -734,7 +734,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
             let charemotions = get(CharEmotion)
             let img = da?.data?.data?.[0]?.b64_json
             if(!img){
-                alertError(JSON.stringify(da.data))
+                notifyError(JSON.stringify(da.data))
                 return false
             }
             img = `data:image/png;base64,${img}`
@@ -743,7 +743,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
             CharEmotion.set(charemotions)
         }
         else{
-            alertError(JSON.stringify(da.data))
+            notifyError(JSON.stringify(da.data))
             return false
         }
         return returnSdData
@@ -751,7 +751,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
     if(db.sdProvider === 'wavespeed'){
         const config = db.wavespeedImage
         if (!config.key) {
-            alertError('Please enter wavespeed API key')
+            notifyError('Please enter wavespeed API key')
             return false
         }
         const body: {[key:string]: any} = {}
@@ -816,7 +816,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                 requestId = requestResponse.data.data.id
             }
             else {
-                alertError(`Submit task failed ${requestResponse.status}: ${requestResponse.data}`)
+                notifyError(`Submit task failed ${requestResponse.status}: ${requestResponse.data}`)
                 return false
             }
 
@@ -829,7 +829,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
             while (true) {
                 const elapsedTime = Date.now() - startTime;
                 if (elapsedTime > MAX_WAIT_TIME) {
-                    alertError(`Task timeout after ${MAX_WAIT_TIME / 1000}s`);
+                    notifyError(`Task timeout after ${MAX_WAIT_TIME / 1000}s`);
                     break;
                 }
                 const taskResponse = await globalFetch(taskEndpoint, {
@@ -855,19 +855,19 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                         break
                     }
                     else if (taskResponse.data.data.status === 'failed') {
-                        alertError(JSON.stringify(taskResponse.data))
+                        notifyError(JSON.stringify(taskResponse.data))
                         break
                     }
                     // else keep loop
                     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
                 }
                 else {
-                    alertError(JSON.stringify(taskResponse.data))
+                    notifyError(JSON.stringify(taskResponse.data))
                     break
                 }
             }
             if (!resultEndpoint) {
-                alertError('Task finished but no result URL')
+                notifyError('Task finished but no result URL')
                 return false
             }
 
@@ -902,11 +902,11 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                 }
             }
             else {
-                alertError(JSON.stringify(resultResponse.data))
+                notifyError(JSON.stringify(resultResponse.data))
                 return false
             }
         } catch (error) {
-            alertError(error)
+            notifyError(error)
             return false
         }
     }
