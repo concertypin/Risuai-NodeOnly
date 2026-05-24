@@ -57,34 +57,6 @@ function computeDatabaseEtagFromObject(databaseObject) {
     return computeBufferEtag(Buffer.from(encodeRisuSaveLegacy(databaseObject)));
 }
 
-async function getStorageEtagForKey(key) {
-    if (key === 'database/database.bin') {
-        return dbEtag ?? null;
-    }
-    if (key.startsWith('inlay/')) {
-        const id = key.slice('inlay/'.length);
-        const filePath = await resolveInlayFilePath(id);
-        if (!filePath) return null;
-        try {
-            const stat = await fs.stat(filePath);
-            return `"${Math.floor(stat.mtimeMs)}"`;
-        } catch {
-            return null;
-        }
-    }
-    if (key.startsWith('inlay_info/')) {
-        const id = key.slice('inlay_info/'.length);
-        try {
-            const stat = await fs.stat(getInlaySidecarPath(id));
-            return `"${Math.floor(stat.mtimeMs)}"`;
-        } catch {
-            // Fall through to legacy kv timestamp.
-        }
-    }
-    const updatedAt = kvGetUpdatedAt(key);
-    return updatedAt === null ? null : `"${updatedAt}"`;
-}
-
 let storageOperationQueue = Promise.resolve();
 function queueStorageOperation(operation) {
     const operationRun = storageOperationQueue.then(operation, operation);
@@ -3003,15 +2975,6 @@ app.get('/api/read', async (req, res, next) => {
         if (key === 'database/database.bin') {
             await flushPendingDb();
         }
-        const ifNoneMatch = req.headers['if-none-match'];
-        const cachedEtag = await getStorageEtagForKey(key);
-        if (cachedEtag && ifNoneMatch === cachedEtag) {
-            if (key === 'database/database.bin') {
-                res.setHeader('x-db-etag', cachedEtag);
-            }
-            res.setHeader('ETag', cachedEtag);
-            return res.status(304).end();
-        }
         let value = null;
         if (key.startsWith('inlay/')) {
             value = await readInlayAssetPayload(key.slice('inlay/'.length));
@@ -3042,15 +3005,10 @@ app.get('/api/read', async (req, res, next) => {
                     return next(e);
                 }
                 dbEtag = computeBufferEtag(value);
-                if (ifNoneMatch === dbEtag) {
-                    res.setHeader('x-db-etag', dbEtag);
-                    res.setHeader('ETag', dbEtag);
+                if (req.headers['if-none-match'] === dbEtag) {
                     return res.status(304).end();
                 }
                 res.setHeader('x-db-etag', dbEtag);
-                res.setHeader('ETag', dbEtag);
-            } else if (cachedEtag) {
-                res.setHeader('ETag', cachedEtag);
             }
             res.setHeader('Content-Type', 'application/octet-stream');
             res.send(value);
@@ -3191,7 +3149,6 @@ app.post('/api/write', async (req, res, next) => {
     if (!checkActiveSession(req, res)) return;
     const filePath = req.headers['file-path'];
     const fileContent = req.body;
-    const ifNoneMatch = req.headers['if-none-match'];
     if (!filePath || !fileContent) {
         res.status(400).send({ error:'File path required' });
         return;
@@ -3203,17 +3160,6 @@ app.post('/api/write', async (req, res, next) => {
     try {
         await queueStorageOperation(async () => {
             const key = Buffer.from(filePath, 'hex').toString('utf-8');
-            if (ifNoneMatch) {
-                const currentEtag = await getStorageEtagForKey(key);
-                if (currentEtag && ifNoneMatch === currentEtag) {
-                    if (key === 'database/database.bin') {
-                        res.setHeader('x-db-etag', currentEtag);
-                    }
-                    res.setHeader('ETag', currentEtag);
-                    res.status(304).end();
-                    return;
-                }
-            }
 
             // ETag conflict detection for database.bin
             if (key === 'database/database.bin') {
@@ -3307,15 +3253,6 @@ app.post('/api/write', async (req, res, next) => {
                 createBackupAndRotate();
             }
 
-            const responseEtag = key === 'database/database.bin'
-                ? dbEtag
-                : await getStorageEtagForKey(key);
-            if (responseEtag) {
-                res.setHeader('ETag', responseEtag);
-            }
-            if (key === 'database/database.bin' && dbEtag) {
-                res.setHeader('x-db-etag', dbEtag);
-            }
             res.send({
                 success: true,
                 etag: key === 'database/database.bin' ? dbEtag : undefined
