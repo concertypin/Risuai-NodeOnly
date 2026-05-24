@@ -18,7 +18,23 @@ const ASSET_SAVE_BASE_RETRY_DELAY_MS = 250;
 const HTTP_STATUS_OK_MIN = 200;
 const HTTP_STATUS_OK_MAX = 300;
 
-const TRANSIENT_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
+const TRANSIENT_HTTP_STATUSES = new Set([
+  // --- Standard ---
+  408, // Request Timeout
+  425, // Too Early
+  429, // Too Many Requests
+  500, // Internal Server Error
+  502, // Bad Gateway
+  503, // Service Unavailable
+  504, // Gateway Timeout
+
+  // --- Cloudflare ---
+  520, // Unknown Error
+  521, // Web Server Is Down
+  522, // Connection Timed Out
+  523, // Origin Is Unreachable
+  524, // A Timeout Occurred
+]);
 
 function getErrorStatus(error: unknown): number | null {
     if (!error || typeof error !== 'object' || !('status' in error)) {
