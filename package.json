@@ -118,17 +118,5 @@
     "vite": "^8.0.3",
     "vite-plugin-wasm": "3.6.0",
     "vitest": "^4.1.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@swc/core",
-      "better-sqlite3",
-      "core-js",
-      "esbuild",
-      "msgpackr-extract",
-      "onnxruntime-node",
-      "protobufjs",
-      "sharp"
-    ]
   }
 }

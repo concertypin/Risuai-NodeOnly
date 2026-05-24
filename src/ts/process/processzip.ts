@@ -45,10 +45,13 @@ function getErrorStatus(error: unknown): number | null {
 }
 
 export function isTransientError(error: unknown): boolean {
-    if (error instanceof TypeError) {
-        return true
+    if (typeof error === 'object' && error !== null && 'name' in error) {
+        const name = (error as { name?: unknown }).name
+        if (name === 'AbortError') {
+            return true
+        }
     }
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (error instanceof TypeError) {
         return true
     }
     const status = getErrorStatus(error)
@@ -335,7 +338,7 @@ export class CharXImporter{
         this.unzip.push(data, final)
 
         if(final){
-            await this.finalize()
+            await this.#finalize()
         }
     }
 
@@ -493,7 +496,7 @@ export class CharXImporter{
      * Finalizes processing when all ZIP data has been pushed.
      * Saves hash signal if needed and marks the queue as complete.
      */
-    private async finalize(){
+    async #finalize(){
         // Save hash signal for server sync if needed
         if(this.hashSignal){
             try {
