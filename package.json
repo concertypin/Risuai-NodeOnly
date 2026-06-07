@@ -64,6 +64,7 @@
     "node-html-parser": "^6.1.13",
     "ollama": "^0.5.18",
     "pdfjs-dist": "^4.10.38",
+    "pg": "^8.13.0",
     "png-chunk-text": "^1.0.0",
     "postcss-selector-parser": "^7.1.1",
     "pyodide": "^0.27.7",

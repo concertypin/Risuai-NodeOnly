@@ -1,42 +1,36 @@
 'use strict';
 
-const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const { createDatabaseAdapter, applySchema } = require('./db-adapter.cjs');
 
-const saveDir = path.join(process.cwd(), 'save');
-if (!fs.existsSync(saveDir)) {
-    fs.mkdirSync(saveDir, { recursive: true });
-}
-const dbPath = path.join(saveDir, 'risuai.db');
-const db = new Database(dbPath);
+// DATABASE_URL determines the backend:
+//   sqlite://path/to/db.sqlite  → SQLite (better-sqlite3)
+//   postgresql://user:pass@host/dbname  → PostgreSQL (pg)
+//   (unset) → default SQLite in save directory
+const dbUrl = process.env.DATABASE_URL;
 
-// WAL mode: better concurrent read performance, single-writer
-db.pragma('journal_mode = WAL');
-db.pragma('synchronous = NORMAL');
-db.pragma('cache_size = -64000');       // 64 MB (default 2 MB) — reduce disk I/O for large blobs
-db.pragma('temp_store = MEMORY');       // keep temp tables in RAM
-db.pragma('busy_timeout = 5000');       // wait up to 5 s on lock contention
-db.pragma('mmap_size = 268435456');     // 256 MB memory-mapped I/O for faster reads
-// Cap WAL file size after a reset checkpoint. Without this, a one-time spike
-// (backup import, VACUUM, large asset upload) leaves the -wal file permanently
-// at its peak size since RESTART/TRUNCATE rewind the writer but never shrink
-// the file unless this limit is set.
-db.pragma('journal_size_limit = 268435456');  // 256 MB
+const adapter = createDatabaseAdapter(dbUrl);
+const db = adapter.db; // SQLite raw db (PostgreSQL uses pool directly)
+const isPostgreSQL = adapter.driver === 'postgresql';
 
-// ─── KV table (replaces /save/ hex files) ────────────────────────────────────
-db.exec(`
+// Apply schema (tables, indexes) for both SQLite and PostgreSQL
+applySchema(adapter);
+
+// ─── KV table ─────────────────────────────────────────────────────────────────
+// SQLite uses BLOB, PostgreSQL uses BYTEA for binary data
+const blobType = isPostgreSQL ? 'BYTEA' : 'BLOB';
+const nowExpr = isPostgreSQL
+    ? `(EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT`
+    : `(CAST(strftime('%s','now') AS INTEGER) * 1000)`;
+
+adapter.exec(`
   CREATE TABLE IF NOT EXISTS kv (
     key        TEXT    PRIMARY KEY,
-    value      BLOB    NOT NULL,
-    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000)
+    value      ${blobType}    NOT NULL,
+    updated_at BIGINT NOT NULL DEFAULT ${nowExpr}
   )
 `);
-
-// Entity tables (characters, chats, settings, presets, modules) were used in
-// a previous version. The tables are no longer created or used, but existing
-// databases may still contain them. They are left in place (orphaned) to avoid
-// destructive DDL on upgrade. clearEntities() handles cleanup during import.
 
 // ─── Migration: /save/ hex files → kv table ──────────────────────────────────
 const savePath = path.join(process.cwd(), 'save');
@@ -59,41 +53,56 @@ function migrateFromSaveDir() {
 
     console.log(`[DB] Migrating ${hexFiles.length} file(s) from /save/ to SQLite...`);
 
-    const insert = db.prepare(
+    const insert = adapter.prepare(
         `INSERT OR IGNORE INTO kv (key, value, updated_at) VALUES (?, ?, ?)`
     );
     const now = Date.now();
 
-    const run = db.transaction(() => {
-        for (let i = 0; i < hexFiles.length; i++) {
-            if (i % 100 === 0 || i === hexFiles.length - 1) {
-                console.log(`[DB] Migrating... ${i + 1}/${hexFiles.length}`);
+    if (isPostgreSQL) {
+        // PostgreSQL: async migration
+        (async () => {
+            for (let i = 0; i < hexFiles.length; i++) {
+                if (i % 100 === 0 || i === hexFiles.length - 1) {
+                    console.log(`[DB] Migrating... ${i + 1}/${hexFiles.length}`);
+                }
+                const key = Buffer.from(hexFiles[i], 'hex').toString('utf-8');
+                const value = fs.readFileSync(path.join(savePath, hexFiles[i]));
+                await insert.run(key, value, now);
             }
-            const key = Buffer.from(hexFiles[i], 'hex').toString('utf-8');
-            const value = fs.readFileSync(path.join(savePath, hexFiles[i]));
-            insert.run(key, value, now);
-        }
-    });
-    run();
-
-    fs.writeFileSync(migrationMarker, new Date().toISOString(), 'utf-8');
-    console.log(`[DB] Migration complete. ${hexFiles.length} files preserved in /save/.`);
-    console.log(`[DB] To free disk space, remove migrated files via Settings > Clean Up Save Folder.`);
+            fs.writeFileSync(migrationMarker, new Date().toISOString(), 'utf-8');
+            console.log(`[DB] Migration complete. ${hexFiles.length} files preserved in /save/.`);
+        })();
+    } else {
+        // SQLite: sync migration
+        const run = adapter.transaction(() => {
+            for (let i = 0; i < hexFiles.length; i++) {
+                if (i % 100 === 0 || i === hexFiles.length - 1) {
+                    console.log(`[DB] Migrating... ${i + 1}/${hexFiles.length}`);
+                }
+                const key = Buffer.from(hexFiles[i], 'hex').toString('utf-8');
+                const value = fs.readFileSync(path.join(savePath, hexFiles[i]));
+                insert.run(key, value, now);
+            }
+        });
+        run();
+        fs.writeFileSync(migrationMarker, new Date().toISOString(), 'utf-8');
+        console.log(`[DB] Migration complete. ${hexFiles.length} files preserved in /save/.`);
+    }
 }
 
 migrateFromSaveDir();
 
 // ─── KV operations ────────────────────────────────────────────────────────────
-const stmtKvGet    = db.prepare(`SELECT value FROM kv WHERE key = ?`);
-const stmtKvSet    = db.prepare(`INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)`);
-const stmtKvDel    = db.prepare(`DELETE FROM kv WHERE key = ?`);
-const stmtKvList   = db.prepare(`SELECT key FROM kv`);
-const stmtKvPrefix = db.prepare(`SELECT key FROM kv WHERE key LIKE ? ESCAPE '\\'`);
-const stmtKvPrefixSizes = db.prepare(`SELECT key, LENGTH(value) as size FROM kv WHERE key LIKE ? ESCAPE '\\'`);
-const stmtKvDelPrefix = db.prepare(`DELETE FROM kv WHERE key LIKE ? ESCAPE '\\'`);
-const stmtKvSize      = db.prepare(`SELECT LENGTH(value) as size FROM kv WHERE key = ?`);
-const stmtKvUpdatedAt = db.prepare(`SELECT updated_at FROM kv WHERE key = ?`);
-const stmtKvCopy = db.prepare(
+const stmtKvGet    = adapter.prepare(`SELECT value FROM kv WHERE key = ?`);
+const stmtKvSet    = adapter.prepare(`INSERT OR REPLACE INTO kv (key, value, updated_at) VALUES (?, ?, ?)`);
+const stmtKvDel    = adapter.prepare(`DELETE FROM kv WHERE key = ?`);
+const stmtKvList   = adapter.prepare(`SELECT key FROM kv`);
+const stmtKvPrefix = adapter.prepare(`SELECT key FROM kv WHERE key LIKE ? ESCAPE '\\'`);
+const stmtKvPrefixSizes = adapter.prepare(`SELECT key, LENGTH(value) as size FROM kv WHERE key LIKE ? ESCAPE '\\'`);
+const stmtKvDelPrefix = adapter.prepare(`DELETE FROM kv WHERE key LIKE ? ESCAPE '\\'`);
+const stmtKvSize      = adapter.prepare(`SELECT LENGTH(value) as size FROM kv WHERE key = ?`);
+const stmtKvUpdatedAt = adapter.prepare(`SELECT updated_at FROM kv WHERE key = ?`);
+const stmtKvCopy = adapter.prepare(
     `INSERT OR REPLACE INTO kv (key, value, updated_at) SELECT ?, value, ? FROM kv WHERE key = ?`
 );
 
@@ -143,20 +152,23 @@ function kvListWithSizes(prefix) {
 }
 
 function checkpointWal(mode = 'TRUNCATE') {
+    if (isPostgreSQL) return; // PostgreSQL doesn't have WAL checkpoint
     return db.pragma(`wal_checkpoint(${mode})`);
 }
 
 function clearEntities() {
-    // Entity tables may still exist from previous versions — clear them during backup import
     try {
-        db.exec(`DELETE FROM characters; DELETE FROM chats; DELETE FROM settings; DELETE FROM presets; DELETE FROM modules`);
+        adapter.exec(`DELETE FROM characters; DELETE FROM chats; DELETE FROM settings; DELETE FROM presets; DELETE FROM modules`);
     } catch {
         // Tables may not exist — ignore
     }
 }
 
+// ─── Exports ──────────────────────────────────────────────────────────────────
 module.exports = {
-    db,
+    adapter,
+    db, // raw SQLite db (null for PostgreSQL)
+    isPostgreSQL,
     // KV
     kvGet, kvSet, kvDel, kvList, kvDelPrefix, kvListWithSizes, kvSize, kvGetUpdatedAt, kvCopyValue,
     clearEntities,
