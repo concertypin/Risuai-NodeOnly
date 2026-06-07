@@ -740,6 +740,109 @@ export class NodeStorage{
         return da.json()
     }
 
+    // ── Granular API ──────────────────────────────────────────────────────────
+
+    async dbGetSettings(): Promise<Record<string, any>> {
+        const da = await this.authFetch('/api/db/settings', {
+            headers: this._lastDbEtag ? { 'if-none-match': this._lastDbEtag } : {},
+        })
+        if (da.status === 304) return null
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbGetSettings error: ${da.status}`)
+        const etag = da.headers.get('etag')
+        if (etag) this._lastDbEtag = etag
+        return da.json()
+    }
+
+    async dbPatchSettings(changes: Record<string, any>): Promise<{ success: boolean; updated: number }> {
+        const da = await this.authFetch('/api/db/settings', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(changes),
+        })
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbPatchSettings error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbListCharacters(): Promise<Array<{ id: string; name: string; avatar: string; updated_at: number }>> {
+        const da = await this.authFetch('/api/db/characters')
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbListCharacters error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbGetCharacter(id: string): Promise<{ id: string; name: string; avatar: string; data: any; updated_at: number } | null> {
+        const da = await this.authFetch(`/api/db/characters/${encodeURIComponent(id)}`)
+        if (da.status === 404) return null
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbGetCharacter error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbPatchCharacter(id: string, data: any): Promise<{ success: boolean }> {
+        const da = await this.authFetch(`/api/db/characters/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbPatchCharacter error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbListChats(characterId: string): Promise<Array<{ chat_id: string; name: string; last_date: string; folder_id: string; message_count: number; updated_at: number }>> {
+        const da = await this.authFetch(`/api/db/characters/${encodeURIComponent(characterId)}/chats`)
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbListChats error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbGetChat(chatId: string): Promise<{ chat_id: string; character_id: string; name: string; last_date: string; folder_id: string; message_count: number; updated_at: number } | null> {
+        const da = await this.authFetch(`/api/db/chats/${encodeURIComponent(chatId)}`)
+        if (da.status === 404) return null
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbGetChat error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbGetMessages(chatId: string, offset = 0, limit = 100): Promise<{ messages: any[]; total: number; offset: number; limit: number }> {
+        const da = await this.authFetch(`/api/db/chats/${encodeURIComponent(chatId)}/messages?offset=${offset}&limit=${limit}`)
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbGetMessages error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbAddMessage(chatId: string, message: any): Promise<{ success: boolean; index: number }> {
+        const da = await this.authFetch(`/api/db/chats/${encodeURIComponent(chatId)}/messages`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(message),
+        })
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbAddMessage error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbPatchMessage(chatId: string, idx: number, data: any): Promise<{ success: boolean }> {
+        const da = await this.authFetch(`/api/db/chats/${encodeURIComponent(chatId)}/messages/${idx}`, {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbPatchMessage error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbListPresets(): Promise<any[]> {
+        const da = await this.authFetch('/api/db/presets')
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbListPresets error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbListModules(): Promise<any[]> {
+        const da = await this.authFetch('/api/db/modules')
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbListModules error: ${da.status}`)
+        return da.json()
+    }
+
+    async dbListLoadouts(): Promise<any[]> {
+        const da = await this.authFetch('/api/db/loadouts')
+        if (da.status < 200 || da.status >= 300) throw new Error(`dbListLoadouts error: ${da.status}`)
+        return da.json()
+    }
+
 }
 
 async function digestPassword(message:string) {

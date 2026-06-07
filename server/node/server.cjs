@@ -25,7 +25,16 @@ const getVips = () => {
 }
 const { kvGet, kvSet, kvDel, kvList,
         kvDelPrefix, kvListWithSizes, kvSize, kvGetUpdatedAt, kvCopyValue, clearEntities, checkpointWal,
-        db: sqliteDb } = require('./db.cjs');
+        db: sqliteDb,
+        settingsGetAll, settingsGet, settingsSet, settingsDelete,
+        presetsList, presetsGet, presetsSet, presetsDelete,
+        modulesList, modulesGet, modulesSet, modulesDelete,
+        loadoutsList, loadoutsGet, loadoutsSet, loadoutsDelete,
+        charactersList, charactersGet, charactersSet, charactersDelete,
+        chatsByCharacter, chatsGet, chatsSet, chatsDelete,
+        messagesByChat, messagesCount, messagesGet, messagesSet, messagesDelete,
+        migrationStateGet, migrationStateSet,
+} = require('./db.cjs');
 const {
     addLogBatch, queryLogs, clearLogs, countLogs,
     logger, installProcessHandlers, expressErrorMiddleware,
@@ -67,11 +76,24 @@ function computeDatabaseEtagFromObject(databaseObject) {
     return computeBufferEtag(Buffer.from(encodeRisuSaveLegacy(databaseObject)));
 }
 
-let storageOperationQueue = Promise.resolve();
-function queueStorageOperation(operation) {
-    const operationRun = storageOperationQueue.then(operation, operation);
-    storageOperationQueue = operationRun.catch(() => {});
+// ─── Sharded storage operation queues ─────────────────────────────────────────
+// Split into 'database' and 'assets' queues to reduce contention.
+// Compound operations use the 'database' queue as the master to ensure ordering.
+const storageOperationQueues = {
+    database: Promise.resolve(),
+    assets: Promise.resolve(),
+};
+
+function queueStorageOperation(operation, shard = 'database') {
+    const queue = storageOperationQueues[shard] || storageOperationQueues.database;
+    const operationRun = queue.then(operation, operation);
+    storageOperationQueues[shard] = operationRun.catch(() => {});
     return operationRun;
+}
+
+// Compound operation: must run on database queue to maintain ordering across shards
+function queueCompoundOperation(operation) {
+    return queueStorageOperation(operation, 'database');
 }
 
 const DB_HEX_KEY = Buffer.from('database/database.bin', 'utf-8').toString('hex');
@@ -177,6 +199,21 @@ function trimSnapshotsToLimits() {
     }
     for (const key of toDelete) kvDel(key);
     return { kept: entries.length - toDelete.length, removed: toDelete.length };
+}
+
+// ─── Background backup guard ─────────────────────────────────────────────────
+let backupInProgress = false;
+
+function scheduleBackupAndRotate() {
+    if (backupInProgress) return;
+    backupInProgress = true;
+    setImmediate(() => {
+        try {
+            createBackupAndRotate();
+        } finally {
+            backupInProgress = false;
+        }
+    });
 }
 
 function createBackupAndRotate() {
@@ -3113,6 +3150,185 @@ app.post('/api/set_password', async (req, res) => {
     }
 })
 
+// ─── Granular RESTful API ────────────────────────────────────────────────────
+// ETag helper for granular endpoints
+function computeEtag(str) {
+    return `"${nodeCrypto.createHash('sha256').update(str).digest('hex').slice(0, 16)}"`;
+}
+
+// GET /api/db/settings
+app.get('/api/db/settings', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = settingsGetAll();
+        const etag = computeEtag(JSON.stringify(data));
+        if (req.headers['if-none-match'] === etag) {
+            return res.status(304).end();
+        }
+        res.set('ETag', etag);
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// PATCH /api/db/settings
+app.patch('/api/db/settings', sessionAuthMiddleware, express.json(), (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const changes = req.body;
+        if (!changes || typeof changes !== 'object') {
+            return res.status(400).json({ error: 'Expected { key: value, ... }' });
+        }
+        for (const [key, value] of Object.entries(changes)) {
+            settingsSet(key, value);
+        }
+        res.json({ success: true, updated: Object.keys(changes).length });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// GET /api/db/presets
+app.get('/api/db/presets', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = presetsList();
+        const etag = computeEtag(JSON.stringify(data));
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('ETag', etag);
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/modules
+app.get('/api/db/modules', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = modulesList();
+        const etag = computeEtag(JSON.stringify(data));
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('ETag', etag);
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/loadouts
+app.get('/api/db/loadouts', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = loadoutsList();
+        const etag = computeEtag(JSON.stringify(data));
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('ETag', etag);
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/characters
+app.get('/api/db/characters', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = charactersList();
+        const etag = computeEtag(JSON.stringify(data));
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('ETag', etag);
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/characters/:id
+app.get('/api/db/characters/:id', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = charactersGet(req.params.id);
+        if (!data) return res.status(404).json({ error: 'Character not found' });
+        const etag = computeEtag(JSON.stringify(data.data));
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('ETag', etag);
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// PATCH /api/db/characters/:id
+app.patch('/api/db/characters/:id', sessionAuthMiddleware, express.json(), (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const existing = charactersGet(req.params.id);
+        if (!existing) return res.status(404).json({ error: 'Character not found' });
+        const merged = { ...existing.data, ...req.body };
+        charactersSet(req.params.id, merged, merged.name, merged.avatar);
+        res.json({ success: true });
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/characters/:id/chats
+app.get('/api/db/characters/:id/chats', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const char = charactersGet(req.params.id);
+        if (!char) return res.status(404).json({ error: 'Character not found' });
+        const data = chatsByCharacter(req.params.id);
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/chats/:chatId
+app.get('/api/db/chats/:chatId', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const data = chatsGet(req.params.chatId);
+        if (!data) return res.status(404).json({ error: 'Chat not found' });
+        res.json(data);
+    } catch (error) { next(error); }
+});
+
+// GET /api/db/chats/:chatId/messages
+app.get('/api/db/chats/:chatId/messages', sessionAuthMiddleware, (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const chat = chatsGet(req.params.chatId);
+        if (!chat) return res.status(404).json({ error: 'Chat not found' });
+        const offset = parseInt(req.query.offset) || 0;
+        const limit = parseInt(req.query.limit) || 100;
+        const data = messagesByChat(req.params.chatId, limit, offset);
+        const total = messagesCount(req.params.chatId);
+        res.json({ messages: data, total, offset, limit });
+    } catch (error) { next(error); }
+});
+
+// POST /api/db/chats/:chatId/messages
+app.post('/api/db/chats/:chatId/messages', sessionAuthMiddleware, express.json(), (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const chat = chatsGet(req.params.chatId);
+        if (!chat) return res.status(404).json({ error: 'Chat not found' });
+        const msg = req.body;
+        if (!msg) return res.status(400).json({ error: 'Message body required' });
+        const idx = messagesCount(req.params.chatId);
+        messagesSet(req.params.chatId, idx, msg);
+        res.json({ success: true, index: idx });
+    } catch (error) { next(error); }
+});
+
+// PATCH /api/db/chats/:chatId/messages/:idx
+app.patch('/api/db/chats/:chatId/messages/:idx', sessionAuthMiddleware, express.json(), (req, res) => {
+    if (!checkActiveSession(req, res)) return;
+    try {
+        const chat = chatsGet(req.params.chatId);
+        if (!chat) return res.status(404).json({ error: 'Chat not found' });
+        const idx = parseInt(req.params.idx);
+        if (isNaN(idx)) return res.status(400).json({ error: 'Invalid message index' });
+        const existing = messagesGet(req.params.chatId, idx);
+        if (!existing) return res.status(404).json({ error: 'Message not found' });
+        const merged = { ...existing, ...req.body };
+        messagesSet(req.params.chatId, idx, merged);
+        res.json({ success: true });
+    } catch (error) { next(error); }
+});
+
+// ─── Legacy API ──────────────────────────────────────────────────────────────
+
 app.get('/api/read', async (req, res, next) => {
     if(!await checkAuth(req, res)){
         return;
@@ -3129,10 +3345,8 @@ app.get('/api/read', async (req, res, next) => {
     }
     try {
         const key = Buffer.from(filePath, 'hex').toString('utf-8');
-        // Flush pending patches before reading database.bin
-        if (key === 'database/database.bin') {
-            await flushPendingDb();
-        }
+        // ETag-based consistency: no flush needed. If client has a stale ETag,
+        // the next write will invalidate it, forcing a full re-fetch.
         let value = null;
         if (key.startsWith('inlay/')) {
             value = await readInlayAssetPayload(key.slice('inlay/'.length));
