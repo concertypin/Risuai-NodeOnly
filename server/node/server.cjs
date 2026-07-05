@@ -3459,22 +3459,12 @@ app.post('/api/write', async (req, res, next) => {
         res.status(400).send({ error:'Invaild Path' });
         return;
     }
-    try {
-        await queueStorageOperation(async () => {
-            const key = Buffer.from(filePath, 'hex').toString('utf-8');
 
-            // ETag conflict detection for database.bin
-            if (key === 'database/database.bin') {
-                const ifMatch = req.headers['x-if-match'];
-                if (ifMatch && dbEtag && ifMatch !== dbEtag) {
-                    res.status(409).send({
-                        error: 'ETag mismatch - concurrent modification detected',
-                        currentEtag: dbEtag
-                    });
-                    return;
-                }
-            }
+    const key = Buffer.from(filePath, 'hex').toString('utf-8');
 
+    // ── Non-DB paths: bypass queue — no data races with database.bin ──
+    if (key !== 'database/database.bin') {
+        try {
             if (key.startsWith('inlay/')) {
                 const id = key.slice('inlay/'.length)
                 const parsed = JSON.parse(Buffer.from(fileContent).toString('utf-8'));
@@ -3498,68 +3488,87 @@ app.post('/api/write', async (req, res, next) => {
                 const parsed = JSON.parse(Buffer.from(fileContent).toString('utf-8'));
                 await writeInlaySidecar(id, parsed);
                 kvDel(key);
-            } else if (key === 'database/database.bin') {
-                // Client sends stubs-only DB — merge full chats from server before persisting
-                try {
-                    const incomingDb = await decodeRisuSave(fileContent);
-                    await ensureChatStore();
-                    const fullDb = reassembleFullDb(incomingDb);
-
-                    // Mirror the patch-persist guard (persistDbCacheWithChats):
-                    // a malformed full-write payload could carry chats with
-                    // neither `_stub` nor `message` (the v1.4.x metadata-only
-                    // pattern). reassembleFullDb passes them through unchanged
-                    // because there's no fullChat lookup to merge in, so they
-                    // would land on disk and silently strip user messages.
-                    // Normal clients are safe (RisuSaveEncoder runs chatToStub
-                    // on every chat first), but external tools / future
-                    // regressions could bypass that — keep the guard at the
-                    // disk boundary for defense in depth.
-                    const losses = findStubFlagLossChats(fullDb);
-                    if (losses.length > 0) {
-                        const sample = losses.slice(0, 3).map(l => `${l.chaId}/${l.chatId ?? l.chatIndex}`).join(', ');
-                        const err = new Error(
-                            `write aborted: ${losses.length} chat(s) lost _stub flag without upgrade — `
-                            + `would silently strip messages on disk. sample=[${sample}]`
-                        );
-                        recordPersistFailure(err, '/api/write:stub-flag-loss');
-                        logger.error(`[Write] ${err.message}`);
-                        res.status(500).json({ error: 'Write aborted: chat data integrity check failed' });
-                        return;
-                    }
-
-                    const mergedContent = Buffer.from(encodeRisuSaveLegacy(fullDb));
-                    // Re-init chat store from merged result
-                    initChatStore(fullDb);
-                    kvSet(key, mergedContent);
-                } catch (e) {
-                    logger.error('[Write] Failed to merge chats into database.bin:', e.message);
-                    // Do NOT write stubs-only to disk — that would permanently
-                    // destroy existing full chat data. Preserve disk as-is.
-                    res.status(500).json({ error: 'Database merge failed' });
-                    return;
-                }
             } else {
                 kvSet(key, fileContent);
             }
+            res.send({ success: true });
+        } catch (error) {
+            next(error);
+        }
+        return;
+    }
 
-            // Update ETag, backup, and invalidate cache after database.bin write
-            if (key === 'database/database.bin') {
-                delete dbCache[DB_HEX_KEY];
-                if (saveTimers[DB_HEX_KEY]) {
-                    clearTimeout(saveTimers[DB_HEX_KEY]);
-                    delete saveTimers[DB_HEX_KEY];
-                }
-                // ETag based on stripped version (what client sees)
-                dbEtag = computeBufferEtag(fileContent);
-                createBackupAndRotate();
+    // ── database.bin: needs queue serialization for merge consistency ──
+    try {
+        let dbModified = false;
+        await queueStorageOperation(async () => {
+            // ETag conflict detection
+            const ifMatch = req.headers['x-if-match'];
+            if (ifMatch && dbEtag && ifMatch !== dbEtag) {
+                res.status(409).send({
+                    error: 'ETag mismatch - concurrent modification detected',
+                    currentEtag: dbEtag
+                });
+                return;
             }
 
-            res.send({
-                success: true,
-                etag: key === 'database/database.bin' ? dbEtag : undefined
-            });
+            // Decode, merge full chats, encode, persist
+            try {
+                const incomingDb = await decodeRisuSave(fileContent);
+                await ensureChatStore();
+                const fullDb = reassembleFullDb(incomingDb);
+
+                // Mirror the patch-persist guard (persistDbCacheWithChats):
+                // a malformed full-write payload could carry chats with
+                // neither `_stub` nor `message` (the v1.4.x metadata-only
+                // pattern). reassembleFullDb passes them through unchanged
+                // because there's no fullChat lookup to merge in, so they
+                // would land on disk and silently strip user messages.
+                // Normal clients are safe (RisuSaveEncoder runs chatToStub
+                // on every chat first), but external tools / future
+                // regressions could bypass that — keep the guard at the
+                // disk boundary for defense in depth.
+                const losses = findStubFlagLossChats(fullDb);
+                if (losses.length > 0) {
+                    const sample = losses.slice(0, 3).map(l => `${l.chaId}/${l.chatId ?? l.chatIndex}`).join(', ');
+                    const err = new Error(
+                        `write aborted: ${losses.length} chat(s) lost _stub flag without upgrade — `
+                        + `would silently strip messages on disk. sample=[${sample}]`
+                    );
+                    recordPersistFailure(err, '/api/write:stub-flag-loss');
+                    logger.error(`[Write] ${err.message}`);
+                    res.status(500).json({ error: 'Write aborted: chat data integrity check failed' });
+                    return;
+                }
+
+                const mergedContent = Buffer.from(encodeRisuSaveLegacy(fullDb));
+                // Re-init chat store from merged result
+                initChatStore(fullDb);
+                kvSet(key, mergedContent);
+                dbModified = true;
+            } catch (e) {
+                logger.error('[Write] Failed to merge chats into database.bin:', e.message);
+                // Do NOT write stubs-only to disk — that would permanently
+                // destroy existing full chat data. Preserve disk as-is.
+                res.status(500).json({ error: 'Database merge failed' });
+                return;
+            }
+
+            // Invalidate cache and update ETag
+            delete dbCache[DB_HEX_KEY];
+            if (saveTimers[DB_HEX_KEY]) {
+                clearTimeout(saveTimers[DB_HEX_KEY]);
+                delete saveTimers[DB_HEX_KEY];
+            }
+            dbEtag = computeBufferEtag(fileContent);
+
+            res.send({ success: true, etag: dbEtag });
         });
+
+        // Backup after response — doesn't need to block the queue
+        if (dbModified) {
+            setImmediate(() => createBackupAndRotate());
+        }
     } catch (error) {
         next(error);
     }
