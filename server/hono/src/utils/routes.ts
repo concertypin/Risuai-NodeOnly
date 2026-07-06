@@ -7,10 +7,12 @@
 import { type Context, type Next } from 'hono';
 import type { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { readFile, writeFile, readdir, mkdir, stat, unlink, rename } from 'node:fs/promises';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, createWriteStream, createReadStream } from 'node:fs';
-import { join, basename, extname, dirname } from 'node:path';
+import { join, basename, extname, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
 
 // ─── Imports from service modules ────────────────────────────────────────────
@@ -443,6 +445,25 @@ function listColdStorageBackupEntries(): Array<{ kind: string; key: string; back
 // ─── Route Registration ──────────────────────────────────────────────────────
 
 export function registerRoutes(app: Hono): void {
+  // ── Static File Serving ────────────────────────────────────────────────────
+  const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
+  const distDir = resolve(projectRoot, 'dist');
+  // Asset files with immutable cache
+  app.use('/assets/*', serveStatic({
+    root: distDir,
+    onFound: (_path: string, c: Context) => {
+      c.header('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  }));
+  // Root-level static files (logos, manifest, favicon, etc.)
+  // We use a wrapper so '/' passes through to app.get('/') handler
+  app.use('/*', async (c, next) => {
+    if (c.req.path === '/') {
+      return next();
+    }
+    const staticMiddleware = serveStatic({ root: distDir, index: '' });
+    return staticMiddleware(c, next);
+  });
   // ── Login / Auth ──────────────────────────────────────────────────────────
 
   app.post('/api/login', async (c: Context) => {
@@ -495,7 +516,12 @@ export function registerRoutes(app: Hono): void {
   });
 
   app.post('/api/session', async (c: Context) => {
-    const { action } = await c.req.json();
+    let body: Record<string, unknown> | undefined;
+    try {
+      body = await c.req.json();
+    } catch {}
+    const action = body?.action;
+
     if (action === 'logout') {
       const sessionCookie = getCookie(c, 'risuai_session');
       if (sessionCookie) {
@@ -505,7 +531,22 @@ export function registerRoutes(app: Hono): void {
       setActiveSession(null);
       return c.json({ success: true });
     }
-    return c.json({ error: 'Unknown action' }, 400);
+
+    // No action — create a new session (like legacy /api/session)
+    const storedHash = getPasswordHash();
+    if (storedHash) {
+      // Password is set — require valid session
+      if (!await checkAuth(c)) {
+        return c.json({ error: 'Not authenticated' }, 401);
+      }
+    }
+    const session = createSession();
+    setCookie(c, 'risuai_session', session, {
+      path: '/', httpOnly: true, sameSite: 'Strict',
+      maxAge: 30 * 24 * 60 * 60,
+    });
+    setActiveSession(c.req.header('x-session-id') ?? null);
+    return c.json({ ok: true });
   });
 
   app.post('/api/set_password', async (c: Context) => {
@@ -583,7 +624,8 @@ export function registerRoutes(app: Hono): void {
 
         const raw = await kvGet(key);
         if (!raw) {
-          return c.body(null, 404);
+          // No database yet — send empty body (legacy-compatible)
+          return c.body(null, 200);
         }
 
         // Decode, init chat store, strip, re-encode
@@ -1214,12 +1256,25 @@ export function registerRoutes(app: Hono): void {
   app.post('/api/logs', async (c: Context) => {
     if (!await checkAuth(c)) { return c.json({ error: 'Unauthorized' }, 401); }
     try {
-      const body: LogEntry | LogEntry[] = await c.req.json();
-      if (Array.isArray(body)) {
-        await addLogBatch(body);
-      } else {
-        await addLogEntry(body);
+      let body: any = await c.req.json();
+      const entries: LogEntry[] = Array.isArray(body) ? body : [body];
+      if (entries.length > 1000) {
+        return c.json({ error: 'Too many entries' }, 413);
       }
+      // Sanitise: provide defaults for undefined fields (postgres rejects undefined)
+      const sanitised = entries.map((e: any) => ({
+        timestamp: typeof e.timestamp === 'number' ? e.timestamp : Date.now(),
+        level: e.level ?? 'info',
+        origin: e.origin ?? 'client',
+        message: e.message ?? '',
+        description: e.description ?? null,
+        source: e.source ?? null,
+        count: e.count ?? 1,
+        platform: e.platform ?? null,
+        client_id: e.client_id ?? e.clientId ?? null,
+        user_agent: e.user_agent ?? e.userAgent ?? null,
+      }));
+      await addLogBatch(sanitised);
       return c.json({ success: true });
     } catch (error) {
       console.error('[Logs] Error:', error);
@@ -1788,8 +1843,14 @@ export function registerRoutes(app: Hono): void {
 
   // ── Health ────────────────────────────────────────────────────────────────
 
-  app.get('/', async (c: Context) => {
-    return c.text('PocketRisu Hono Server');
+  app.get('/', async (_c: Context) => {
+    const indexPath = resolve(projectRoot, 'dist', 'index.html');
+    const html = readFileSync(indexPath, 'utf-8');
+    const injected = html.replace(
+      '</head>',
+      '<script>globalThis.__NODE__ = true; globalThis.__PATCH_SYNC__ = true</script></head>'
+    );
+    return _c.html(injected);
   });
 
   // ── Error Handler ─────────────────────────────────────────────────────────
